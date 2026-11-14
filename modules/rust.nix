@@ -47,10 +47,18 @@
         packageArguments
         // {
           doCheck = false;
+          ZEROUTE_CORE_DIR = config.packages.zerotier-core-android;
+          preBuild = ''
+            export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$CXX"
+          '';
           # Android native libraries must also load on devices using 16 KiB pages.
           RUSTFLAGS = [
             "-C"
             "link-arg=-Wl,-z,max-page-size=16384"
+            "-C"
+            "link-arg=-Wl,--no-undefined"
+            "-C"
+            "target-feature=-crt-static"
           ];
         }
       );

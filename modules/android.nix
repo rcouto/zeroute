@@ -47,6 +47,8 @@
         postPatch = ''
           mkdir -p app/src/main/jniLibs/arm64-v8a
           cp ${config.packages.core-android}/lib/libzeroute_core.so app/src/main/jniLibs/arm64-v8a/
+          mkdir -p app/src/main/res/raw
+          cp ${config.packages.zerotier-core-android}/share/licenses/zerotier-core/LICENSE-MPL.txt app/src/main/res/raw/zerotier_core_license.txt
         '';
         gradleBuildTask = "assembleRelease";
         doCheck = true;
@@ -68,6 +70,8 @@
           unzip -Z1 "$out/zeroute-arm64-unsigned.apk" | grep -Fx 'lib/arm64-v8a/libzeroute_core.so'
           unzip -p "$out/zeroute-arm64-unsigned.apk" 'lib/arm64-v8a/libzeroute_core.so' > libzeroute_core.so
           readelf -h libzeroute_core.so | grep -E 'Machine: +AArch64'
+          # Android libc must stay dynamically linked; never ship its static copy.
+          readelf -d libzeroute_core.so | grep -F 'Shared library: [libc.so]'
           readelf --wide --dyn-syms libzeroute_core.so | grep -F 'Java_org_rcouto_zeroute_NativeBridge_apiVersion'
           runHook postInstallCheck
         '';
