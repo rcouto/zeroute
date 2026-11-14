@@ -10,3 +10,12 @@ crate-type = ["cdylib", "rlib"]
 
 [lints]
 workspace = true
+
+[dependencies]
+jni = { version = "0.22.4", default-features = false }
+
+[build-dependencies]
+cc = { version = "1.11.2", default-features = false }
+
+[target.'cfg(target_os = "android")'.dependencies]
+libc = "0.2.191"

@@ -4,9 +4,14 @@ A personal Rust-first Android client for ZeroTier. Open source, experimental,
 and maintained for the author's own devices, with no support or compatibility
 commitment.
 
-This repository currently contains a build/environment scaffold. The APK checks
-that Java can load the Rust library and displays a development notice. It does
-not implement a VPN or bundle the ZeroTier engine yet.
+The development app saves a network ID and uses the upstream ZeroTier core
+through a Rust-owned IPv4/IPv6 packet adapter. Android provides a foreground
+VPN service, system consent, protected transport sockets and the TUN interface.
+The public node address is shown for controller admission. Default routes are
+ignored: this is initially a private-network VPN rather than an Internet exit.
+Managed DNS readiness requires an actual resolver reply. Direct ARM64 phone checks cover IPv6 ping, Android DNS, private HTTPS and
+Disconnect. Network handovers, long-idle behavior and process-death recovery
+remain unverified; build checks alone do not establish VPN reliability.
 
 ## Development
 
@@ -32,9 +37,10 @@ The Gradle version comes from nixpkgs; use Gradle inside the Nix development she
 Keep signing material outside the worktree.
 
 The default build produces an **unsigned ARM64 APK**. It cannot be installed
-until separately signed. This scaffold creates no release signing key and does
+until separately signed. The build creates no release signing key and does
 not install applications or activate a VPN on any device.
 
 See [architecture](docs/architecture.md) and [CI and publication](docs/ci.md).
-Application-owned code is MIT-licensed. Future upstream ZeroTier components
-retain their own licenses; do not assume this license covers third-party code.
+Application-owned code is MIT-licensed. The bundled upstream ZeroTier core retains its MPL-2.0 license, available in
+the app and at the locked upstream source. Other third-party components retain
+their respective licenses.

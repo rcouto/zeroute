@@ -1,16 +1,11 @@
-//! Rust application boundary for Zeroute.
+//! Rust-owned settings, readiness policy, and the Android JNI boundary.
 //!
-//! This bootstrap exports only an ABI handshake. ZeroTier, VPN lifecycle,
-//! networking and persistence are not implemented yet.
+//! The Android adapter supplies protected transport sockets and a TUN descriptor.
 
-use core::ffi::c_void;
+mod android_bridge;
+pub mod engine;
+pub mod readiness;
+pub mod settings;
 
-// SAFETY: this uniquely named JNI symbol matches NativeBridge.apiVersion.
-// Neither JNI pointer is dereferenced, retained or shared with another thread.
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_apiVersion(
-    _environment: *mut c_void,
-    _class: *mut c_void,
-) -> i32 {
-    1
-}
+pub mod network;
+pub mod packet;

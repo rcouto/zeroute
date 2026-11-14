@@ -94,7 +94,8 @@
         "git-hooks": "git-hooks",
         "import-tree": "import-tree",
         "nixpkgs": "nixpkgs",
-        "rust-overlay": "rust-overlay"
+        "rust-overlay": "rust-overlay",
+        "zerotier-core": "zerotier-core"
       }
     },
     "rust-overlay": {
@@ -114,6 +115,22 @@
       "original": {
         "owner": "oxalica",
         "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
+    "zerotier-core": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784748334,
+        "narHash": "sha256-uWORGGTafVZaTQV6a9ryETtYba0XKRpgti/WPJpIM6Q=",
+        "owner": "zerotier",
+        "repo": "ZeroTierOne",
+        "rev": "899352e38405968516bb12a770f0ac02f6058fa8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "zerotier",
+        "repo": "ZeroTierOne",
         "type": "github"
       }
     }

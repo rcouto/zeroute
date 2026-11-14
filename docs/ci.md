@@ -1,36 +1,65 @@
 # CI and publication
 
-Gitea is the private working repository. A minimal flake and license establish
-main; the application and development scaffold are reviewed on feature/bootstrap.
+Gitea is the private working repository. The bootstrap was merged through PR #1.
+Buildbot discovery uses the `buildbot-rcouto` topic; its account has admin
+collaborator access for webhook management. Publishing an implementation branch
+and running its PR checks remain separate from targeted remote builds.
 
-Buildbot discovery uses the `buildbot-rcouto` repository topic. The `buildbot`
-account has admin collaborator access, matching the existing repository setup
-so it can manage webhooks. Discovery/webhook setup and actual remote CI cannot
-be proved until code is pushed and Buildbot scans the repository.
+## Build scope and caching
 
-The agreed initial matrix is one x86_64-linux builder running:
+The agreed matrix uses one x86_64-linux builder for source hygiene/pre-commit,
+host Rust build/tests and the ARM64 unsigned APK with Android lint and packaging
+checks. Core integration adds upstream C++ compilation to the existing ARM64 job,
+as approved by the owner. There are no extra ABIs, emulator jobs, signing jobs,
+deployment jobs or publishing jobs.
 
-- pre-commit formatting/lint and source hygiene;
-- native Rust build/test hooks;
-- ARM64 Rust library cross-compilation, unsigned APK assembly and Android lint;
-- an APK archive check confirming that the ARM64 native library is packaged.
+Nix caches the pinned SDK/NDK/JDK/Rust toolchains, Gradle dependency inventory,
+upstream core archive, Rust native output and APK separately. UI-only edits reuse
+the native output. Core, Rust, NDK and relevant lock changes invalidate it. Cold
+core-integration and full CI timings remain unmeasured; ordinary builds do not
+resolve unpinned dependencies. Refresh the dependency inventory explicitly when
+changing Gradle dependencies.
 
-There are no emulator, signing, deployment or publishing jobs. Bootstrap Rust
-checks currently prove compilation/lint; they do not constitute VPN behavior or
-on-device JNI acceptance tests. Device installation requires separate approval.
+Public GitHub sharing remains a separately authorized push-mirror setup; no
+GitHub repository, mirror or release publication has been created. Keep signing
+material outside Git and the Nix store, and protect release credentials from PR
+jobs. Unsigned CI artifacts require no signing credentials.
 
-Remote CI timings are unmeasured. SDK/NDK/JDK/Rust downloads may dominate a cold
-run. Nix caches toolchains, pinned Gradle artifacts, and separate native/APK
-outputs. UI edits should reuse the native output; toolchain/core changes
-invalidate native artifacts. Dependency inventory changes require an explicit
-refresh; ordinary sandboxed builds must not resolve unpinned dependencies.
+## Implementation validation
 
-Public sharing will use a separately configured Gitea-to-GitHub push mirror.
-No GitHub repository, mirror, token or release publication has been created.
-Before enabling mirroring, review the complete history for secrets and personal
-information. Keep the stable release signing key in private backed-up storage;
-signing happens outside the Nix store. Protect release credentials from PR jobs.
-No signing credentials are required for the unsigned CI artifact.
+Nineteen host Rust tests cover settings persistence, stale readiness events,
+configuration validation, private-route policy, bounded packet queues, ARP,
+an IPv6 neighbor/data exchange, and DNS matching/readiness expiry. Host Clippy,
+Android Rust typechecking and the versioned Java/JNI smoke test pass. The full
+ARM64 native library, APK assembly, Android lint and packaging checks passed on
+builder-nix. Linking rejects unresolved symbols; archive checks require AArch64,
+the JNI entry point and shared Android libc. The scoped prepared-VPN lint
+exception is explained in [architecture](architecture.md).
+
+An early phone launch exposed missing C++ ABI symbols and accidental static-libc
+selection. The corrected build stages only the required C++ runtime archives.
+Phone feedback then exposed Disconnect waiting for service destruction; explicit
+teardown before stopSelf fixed that path and the operator confirmed it works.
+
+DNS diagnosis distinguished the working tunnel/resolver from Android lookups:
+direct AAAA and unfiltered/forced-IPv6 libc lookups succeeded, while AI_ADDRCONFIG
+returned no addresses and its global IPv6 route probe failed. Android Private DNS
+was off. After the Android-only probe host route was added, the route check and
+AI_ADDRCONFIG succeeded, and the operator confirmed private HTTPS loads in
+Firefox. Default-route forwarding remains disabled.
+
+Basic IPv6 ping, Android DNS, private HTTPS and Disconnect have phone evidence.
+Network handovers, cold-start timing, long-idle/battery behavior and process-death
+recovery remain unverified. Test APKs were signed with a development key outside
+Git/Nix; no release key was created. Build checks alone do not establish VPN
+reliability.
+
+## Remote build measurements
+
+With toolchains and the core archive cached, one bring-up build reported 2m 28s
+for APK assembly and 34s for lint. The final DNS compatibility build reported
+1m 10s for assembly and 29s for lint. These are targeted builder-nix runs, not
+fresh CI or clean-machine benchmarks.
 
 ## Bootstrap measurements
 
@@ -52,10 +81,7 @@ and slow large transfers; interrupted diagnostic attempts are not included in
 the successful-run timings above. Local-only builder and HTTP/1 overrides were
 used for bootstrap diagnostics; no persistent Nix settings were changed.
 
-No APK was signed or installed. VPN functionality and on-device JNI execution
-remain untested. Remote CI results are reported on the bootstrap pull request.
-
-The development shell was smoke-tested with Rust/Cargo 1.100.0, JDK 21 and
-Gradle 8.14.6. It installed normal pre-commit and pre-push hooks. Final local
-validation uses `nix flake check path:.` with import-from-derivation disabled;
-no Git commit or push is part of that validation.
+The sandboxed pre-commit check receives the same lock-file-derived Cargo vendor
+closure as the host Rust package through git-hooks.nix
+`settings.rust.check.cargoDeps`. Offline Clippy must not depend on a developer
+Cargo cache. This reuses existing dependencies and adds no job or ABI.

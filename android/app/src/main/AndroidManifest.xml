@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
     <application
         android:allowBackup="false"
         android:fullBackupContent="@xml/backup_rules"
@@ -8,6 +13,27 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <!-- Prepared VPNs qualify for systemExempted without alarm permissions.
+             AGP 8.13 lint models only alarm eligibility. The service checks
+             VpnService.prepare() before startForeground; see docs/architecture.md. -->
+        <service android:name=".ZerouteVpnService"
+            tools:ignore="ForegroundServicePermission"
+            android:exported="true"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:foregroundServiceType="systemExempted">
+            <intent-filter><action android:name="android.net.VpnService" /></intent-filter>
+            <meta-data android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON" android:value="false" />
+        </service>
+        <service android:name=".ZerouteTileService"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:icon="@drawable/ic_vpn_tile"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+        </service>
+        <activity android:name=".VpnControlActivity" android:exported="false"
+            android:excludeFromRecents="true" android:taskAffinity=""
+            android:theme="@style/TileControlTheme" />
         <activity
             android:name=".MainActivity"
             android:exported="true">
