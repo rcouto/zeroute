@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Zeroute</string>
+    <string name="bootstrap_status">Development build. VPN functionality is not implemented yet.</string>
+</resources>
