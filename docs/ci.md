@@ -80,3 +80,8 @@ end-to-end timings. Earlier cold setup suffered intermittent cache DNS timeouts
 and slow large transfers; interrupted diagnostic attempts are not included in
 the successful-run timings above. Local-only builder and HTTP/1 overrides were
 used for bootstrap diagnostics; no persistent Nix settings were changed.
+
+The sandboxed pre-commit check receives the same lock-file-derived Cargo vendor
+closure as the host Rust package through git-hooks.nix
+`settings.rust.check.cargoDeps`. Offline Clippy must not depend on a developer
+Cargo cache. This reuses existing dependencies and adds no job or ABI.

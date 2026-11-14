@@ -23,6 +23,16 @@
             android:text="@string/state_stopped"
             android:textAppearance="?android:attr/textAppearanceMedium" />
         <TextView
+            android:id="@+id/message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:accessibilityLiveRegion="polite" />
+        <Button android:id="@+id/start_engine" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/start_engine" />
+        <Button android:id="@+id/stop_engine" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/stop_engine" />
+        <Button android:id="@+id/add_tile" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/add_tile" />
+        <Button android:id="@+id/toggle_details" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/details_show" />
+        <LinearLayout android:id="@+id/details" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
@@ -42,11 +52,6 @@
             android:layout_height="wrap_content"
             android:text="@string/save_network" />
         <TextView
-            android:id="@+id/message"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:accessibilityLiveRegion="polite" />
-        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
@@ -60,9 +65,8 @@
         <TextView android:id="@+id/core_version" android:layout_width="match_parent" android:layout_height="wrap_content" />
         <TextView android:id="@+id/node_address" android:layout_width="match_parent" android:layout_height="wrap_content" />
         <TextView android:id="@+id/control_plane_status" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <Button android:id="@+id/start_engine" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/start_engine" />
-        <Button android:id="@+id/stop_engine" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/stop_engine" />
         <Button android:id="@+id/core_license" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/core_license" />
+        </LinearLayout>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

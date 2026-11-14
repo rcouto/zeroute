@@ -30,4 +30,9 @@
     <string name="core_license">ZeroTier core license</string>
     <string name="vpn_channel">VPN connection</string>
     <string name="vpn_notification">Zeroute is running; open the app for connection readiness.</string>
+    <string name="tile_connecting">Connecting</string>
+    <string name="add_tile">Add Quick Settings tile</string>
+    <string name="tile_help">Open Quick Settings, tap Edit, then add Zeroute.</string>
+    <string name="details_show">Network &amp; diagnostics</string>
+    <string name="details_hide">Hide network &amp; diagnostics</string>
 </resources>

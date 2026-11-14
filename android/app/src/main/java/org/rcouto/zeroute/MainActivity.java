@@ -58,6 +58,14 @@ public final class MainActivity extends Activity {
         });
     findViewById(R.id.root).requestApplyInsets();
     findViewById(R.id.core_license).setOnClickListener(view -> showCoreLicense());
+    findViewById(R.id.toggle_details)
+        .setOnClickListener(view -> {
+          boolean show = findViewById(R.id.details).getVisibility() != android.view.View.VISIBLE;
+          findViewById(R.id.details)
+              .setVisibility(show ? android.view.View.VISIBLE : android.view.View.GONE);
+          ((Button) view).setText(show ? R.string.details_hide : R.string.details_show);
+        });
+    findViewById(R.id.add_tile).setOnClickListener(view -> addTile());
     networkId = findViewById(R.id.network_id);
     save = findViewById(R.id.save_network);
     startEngine = findViewById(R.id.start_engine);
@@ -91,6 +99,10 @@ public final class MainActivity extends Activity {
       handler.post(() -> {
         if (isDestroyed()) return;
         if (savedInstanceState == null) networkId.setText(savedId);
+        if (savedId.isEmpty()) {
+          findViewById(R.id.details).setVisibility(android.view.View.VISIBLE);
+          ((Button) findViewById(R.id.toggle_details)).setText(R.string.details_hide);
+        }
         settingsReady = true;
         renderReadiness();
         if (!settingsLoaded) showMessage(R.string.settings_unavailable);
@@ -110,6 +122,20 @@ public final class MainActivity extends Activity {
         insets.getSystemWindowInsetTop(),
         insets.getSystemWindowInsetRight(),
         insets.getSystemWindowInsetBottom());
+  }
+
+  private void addTile() {
+    if (Build.VERSION.SDK_INT >= 33) {
+      android.app.StatusBarManager manager = getSystemService(android.app.StatusBarManager.class);
+      manager.requestAddTileService(
+          new android.content.ComponentName(this, ZerouteTileService.class),
+          getString(R.string.app_name),
+          android.graphics.drawable.Icon.createWithResource(this, R.drawable.ic_vpn_tile),
+          getMainExecutor(),
+          result -> {});
+    } else {
+      showMessage(R.string.tile_help);
+    }
   }
 
   private void showCoreLicense() {
@@ -203,6 +229,8 @@ public final class MainActivity extends Activity {
       long state = NativeBridge.readiness();
       if (state < 0 || state > 5) throw new IllegalStateException("Unknown readiness state");
       boolean active = state != 0;
+      startEngine.setVisibility(active ? android.view.View.GONE : android.view.View.VISIBLE);
+      stopEngine.setVisibility(active ? android.view.View.VISIBLE : android.view.View.GONE);
       boolean available = (NativeBridge.capabilities() & NativeBridge.CAPABILITY_ENGINE) != 0;
       startEngine.setEnabled(available && settingsReady && !active && !operationPending);
       stopEngine.setEnabled(active && !operationPending);

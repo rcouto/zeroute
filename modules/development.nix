@@ -14,6 +14,7 @@
       formatter = pkgs.nixfmt;
       pre-commit.settings = {
         src = self;
+        settings.rust.check.cargoDeps = config.packages.core.cargoDeps;
         hooks = {
           nixfmt.enable = true;
           deadnix.enable = true;

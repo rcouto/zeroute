@@ -128,3 +128,19 @@ this compatibility rule if Android changes its probe. The phone resolver regress
 the route probe succeeds. The operator confirmed private HTTPS loads in Firefox. The internal SOA
 probe alone cannot establish application DNS; Android resolver and browser
 checks remain separate acceptance evidence.
+
+### Quick Settings control
+
+The main screen keeps connection control visible and folds network settings and
+diagnostics into a disclosure. Its Add Quick Settings tile button asks Android
+for user confirmation (Android 13+); older versions use the panel edit menu.
+The non-active TileService reads native readiness when the panel opens, with no
+extra timer. Active means the engine is running; the subtitle distinguishes
+connecting from DNS-ready. It does not continuously refresh an already-open panel.
+A private translucent activity handles the toggle and Android VPN consent. Missing
+settings open the main screen. Locked-device use requires unlocking. Existing
+foreground-service notification behavior is unchanged.
+
+Battery consumption has not been measured. Existing service monitoring and DNS
+probes remain unchanged; this UI change adds no periodic background work. Idle,
+cellular and handover measurements are required before quoting battery rates.
