@@ -26,8 +26,12 @@ public final class ZerouteVpnService extends VpnService {
   private ParcelFileDescriptor tunnel;
   private String appliedConfiguration = "";
   private volatile boolean closing;
-  private boolean failed;
+  private long token;
+  private volatile int latestStartId;
+  private String notificationText = "";
+  private boolean ownsUnderlay;
   private boolean cleaned;
+  private boolean foreground;
 
   // Called synchronously by JNI before its transport worker starts.
   public boolean protectSocket(int descriptor) {
@@ -36,17 +40,55 @@ public final class ZerouteVpnService extends VpnService {
 
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
-    if (intent == null || ACTION_STOP.equals(intent.getAction())) {
+    latestStartId = startId;
+    if (intent == null) {
       requestStop(false);
       return START_NOT_STICKY;
     }
-    if (!ACTION_CONNECT.equals(intent.getAction()) || prepare(this) != null) {
-      requestStop(false);
+    if (ACTION_STOP.equals(intent.getAction())) {
+      long requested = intent.getLongExtra("token", token);
+      if (requested != 0 && requested == token) {
+        NativeBridge.sessionEvent(token, 3);
+        requestStop(false);
+      } else if (token == 0 && NativeBridge.sessionAccepts(requested, 4)) {
+        token = requested;
+        requestStop(false);
+      } else if (token == 0) {
+        stopSelf(startId);
+      }
       return START_NOT_STICKY;
     }
-    showForegroundNotification();
+    long requested = intent.getLongExtra("token", 0);
+    if (!ACTION_CONNECT.equals(intent.getAction()) || !NativeBridge.sessionAccepts(requested, 2)) {
+      if (token == 0 && NativeBridge.sessionAccepts(requested, 4)) {
+        token = requested;
+        requestStop(false);
+      } else if (token == 0) stopSelf(startId);
+      return START_NOT_STICKY;
+    }
+    if (prepare(this) != null) {
+      token = requested;
+      NativeBridge.sessionFailure(token, 3);
+      requestStop(true);
+      return START_NOT_STICKY;
+    }
+    token = requested;
+    closing = false;
+    cleaned = false;
+    if (!ownsUnderlay) {
+      ConnectionController.acquireUnderlay(this);
+      ownsUnderlay = true;
+    }
+    try {
+      showForegroundNotification();
+    } catch (RuntimeException error) {
+      NativeBridge.sessionFailure(token, 6);
+      requestStop(true);
+      return START_NOT_STICKY;
+    }
+    final long attempt = token;
     worker.execute(() -> {
-      if (closing || monitor != null) return;
+      if (closing || monitor != null || !NativeBridge.sessionAccepts(attempt, 2)) return;
       try {
         NativeBridge.stopEngine();
         String error = NativeBridge.startVpnEngine(getNoBackupFilesDir().getAbsolutePath(), this);
@@ -54,6 +96,11 @@ public final class ZerouteVpnService extends VpnService {
           failAndStop();
           return;
         }
+        if (!NativeBridge.sessionEvent(attempt, 2)) {
+          requestStop(false);
+          return;
+        }
+        ConnectionController.publish();
         monitor = worker.scheduleWithFixedDelay(this::refreshTunnel, 0, 500, TimeUnit.MILLISECONDS);
       } catch (RuntimeException | LinkageError error) {
         failAndStop();
@@ -77,29 +124,47 @@ public final class ZerouteVpnService extends VpnService {
         PendingIntent.getService(
             this,
             1,
-            new Intent(this, ZerouteVpnService.class).setAction(ACTION_STOP),
+            new Intent(this, ZerouteVpnService.class)
+                .setAction(ACTION_STOP)
+                .putExtra("token", token),
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     Notification notification =
         new Notification.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText(getString(R.string.vpn_notification))
+            .setContentText(notificationStatus())
             .setContentIntent(open)
             .setOngoing(true)
             .addAction(
                 new Notification.Action.Builder(null, getString(R.string.stop_engine), stop)
                     .build())
             .build();
+    if (foreground) {
+      notifications.notify(1, notification);
+      return;
+    }
     if (Build.VERSION.SDK_INT >= 34) {
       startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED);
     } else {
       startForeground(1, notification);
     }
+    foreground = true;
+  }
+
+  private String notificationStatus() {
+    ConnectionStatus status = ConnectionStatus.read();
+    return getString(status.title());
   }
 
   private void refreshTunnel() {
     if (closing) return;
     try {
+      ConnectionController.publish();
+      String text = notificationStatus();
+      if (!text.equals(notificationText)) {
+        notificationText = text;
+        showForegroundNotification();
+      }
       if (NativeBridge.readiness() == 0) {
         failAndStop();
         return;
@@ -186,38 +251,78 @@ public final class ZerouteVpnService extends VpnService {
   private synchronized void requestStop(boolean failure) {
     if (closing) return;
     closing = true;
-    failed = failure;
+    final long stoppingToken = token;
+    if (failure) NativeBridge.sessionFailure(stoppingToken, 2);
+    else NativeBridge.sessionEvent(stoppingToken, 3);
+    ConnectionController.publish();
+    if (foreground) {
+      try {
+        showForegroundNotification();
+      } catch (RuntimeException ignored) {
+        /* Teardown must not depend on notification delivery. */
+      }
+    }
     worker.execute(() -> {
       // The platform can keep a VPN service bound after stopSelf(). Release the
       // TUN and native transport first; onDestroy is only a cleanup fallback.
-      cleanup();
-      stopForeground(STOP_FOREGROUND_REMOVE);
-      stopSelf();
+      if (cleanup()) {
+        new android.os.Handler(android.os.Looper.getMainLooper())
+            .post(() -> {
+              stopForeground(STOP_FOREGROUND_REMOVE);
+              foreground = false;
+              stopSelf(latestStartId);
+              NativeBridge.sessionEvent(stoppingToken, 4);
+              ConnectionController.publish();
+            });
+      } else {
+        NativeBridge.sessionFailure(stoppingToken, 5);
+        ConnectionController.publish();
+      }
     });
   }
 
-  private void cleanup() {
-    if (cleaned) return;
-    cleaned = true;
-    if (monitor != null) monitor.cancel(false);
+  private boolean cleanup() {
+    if (cleaned) return true;
+    if (monitor != null) {
+      monitor.cancel(false);
+      monitor = null;
+    }
     closeTunnel();
+    appliedConfiguration = "";
     try {
-      NativeBridge.stopEngine();
-      if (failed) NativeBridge.vpnFailed();
+      String error = NativeBridge.stopEngine();
+      if (!error.isEmpty()) return false;
+      cleaned = true;
+      return true;
     } catch (RuntimeException | LinkageError ignored) {
-      /* No state payloads are logged. */
+      return false;
     }
   }
 
   @Override
   public void onRevoke() {
-    requestStop(false);
+    NativeBridge.sessionFailure(token, 3);
+    requestStop(true);
   }
 
   @Override
   public void onDestroy() {
     closing = true;
-    worker.execute(this::cleanup);
+    if (ownsUnderlay) {
+      ConnectionController.releaseUnderlay();
+      ownsUnderlay = false;
+    }
+    final long destroyedToken = token;
+    worker.execute(() -> {
+      if (NativeBridge.sessionAccepts(destroyedToken, 3)
+          || NativeBridge.sessionAccepts(destroyedToken, 2))
+        NativeBridge.sessionFailure(destroyedToken, 4);
+      if (NativeBridge.sessionAccepts(destroyedToken, 4)) {
+        if (cleanup()) NativeBridge.sessionEvent(destroyedToken, 4);
+        else NativeBridge.sessionFailure(destroyedToken, 5);
+        ConnectionController.publish();
+      }
+    });
     worker.shutdown();
     stopForeground(STOP_FOREGROUND_REMOVE);
     super.onDestroy();

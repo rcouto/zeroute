@@ -1,76 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:id="@+id/root"
-    android:fillViewport="true">
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textAppearance="?android:attr/textAppearanceLarge" />
-        <TextView
-            android:id="@+id/connection_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:accessibilityLiveRegion="polite"
-            android:text="@string/state_stopped"
-            android:textAppearance="?android:attr/textAppearanceMedium" />
-        <TextView
-            android:id="@+id/message"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:accessibilityLiveRegion="polite" />
-        <Button android:id="@+id/start_engine" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/start_engine" />
-        <Button android:id="@+id/stop_engine" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/stop_engine" />
-        <Button android:id="@+id/add_tile" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/add_tile" />
-        <Button android:id="@+id/toggle_details" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/details_show" />
-        <LinearLayout android:id="@+id/details" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:labelFor="@id/network_id"
-            android:text="@string/network_label" />
-        <EditText
-            android:id="@+id/network_id"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:importantForAutofill="no"
-            android:inputType="text|textNoSuggestions"
-            android:maxLines="1"
-            android:singleLine="true" />
-        <Button
-            android:id="@+id/save_network"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/save_network" />
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/readiness_title"
-            android:textAppearance="?android:attr/textAppearanceMedium" />
-        <TextView android:id="@+id/engine_status" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <TextView android:id="@+id/configuration_status" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <TextView android:id="@+id/tunnel_status" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <TextView android:id="@+id/dns_status" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <TextView android:id="@+id/traffic_status" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <TextView android:id="@+id/core_version" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <TextView android:id="@+id/node_address" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <TextView android:id="@+id/control_plane_status" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <Button android:id="@+id/core_license" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/core_license" />
+    android:id="@+id/root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true" android:clipToPadding="false">
+    <LinearLayout android:id="@+id/content" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="24dp">
+        <TextView android:id="@+id/app_title" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/app_name" android:textSize="28sp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/private_network" android:layout_marginTop="4dp" />
+        <TextView android:id="@+id/connection_status" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="28dp" android:accessibilityLiveRegion="polite"
+            android:text="@string/state_stopped" android:textSize="26sp" />
+        <TextView android:id="@+id/status_description" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:textSize="16sp" />
+        <TextView android:id="@+id/engine_error" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:accessibilityLiveRegion="polite" android:textSize="16sp" />
+        <Button android:id="@+id/connection_action" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:minHeight="56dp" android:layout_marginTop="16dp" android:text="@string/start_engine" android:textSize="18sp"
+            android:backgroundTint="?android:attr/colorAccent" android:textColor="@color/action_text" />
+        <LinearLayout android:id="@+id/admission" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+            <TextView android:id="@+id/admission_node" android:layout_width="match_parent" android:layout_height="wrap_content" android:textIsSelectable="true" android:layout_marginTop="12dp" />
+            <Button android:id="@+id/copy_admission" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/copy_node" />
         </LinearLayout>
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/backend_pending" />
+        <TextView android:id="@+id/underlay_status" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" />
+        <TextView android:id="@+id/network_notice" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:accessibilityLiveRegion="polite" />
+        <Button android:id="@+id/portal_action" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:minHeight="48dp" android:text="@string/open_wifi_settings" android:visibility="gone" />
+        <TextView android:id="@+id/tunnel_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" />
+        <TextView android:id="@+id/dns_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" />
+        <Button android:id="@+id/toggle_details" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:minHeight="48dp" android:layout_marginTop="16dp" android:text="@string/details_show" />
+        <LinearLayout android:id="@+id/details" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:visibility="gone" android:saveEnabled="true">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:labelFor="@id/network_id" android:text="@string/network_label" android:layout_marginTop="12dp" />
+            <EditText android:id="@+id/network_id" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:importantForAutofill="no" android:inputType="text|textNoSuggestions"
+                android:maxLines="1" android:singleLine="true" android:selectAllOnFocus="true" />
+            <Button android:id="@+id/save_network" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/save_network" />
+            <TextView android:id="@+id/node_address" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" android:textIsSelectable="true" />
+            <Button android:id="@+id/copy_node" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/copy_node" />
+            <TextView android:id="@+id/control_plane_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" />
+            <TextView android:id="@+id/core_version" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/evidence_note" android:layout_marginTop="12dp" />
+            <CheckBox android:id="@+id/high_contrast" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:layout_marginTop="16dp" android:text="@string/high_contrast" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/display_note" />
+            <Button android:id="@+id/add_tile" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/add_tile" />
+            <Button android:id="@+id/core_license" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/core_license" />
+        </LinearLayout>
+        <TextView android:id="@+id/message" android:layout_width="match_parent" android:layout_height="wrap_content" android:accessibilityLiveRegion="polite" />
+        <TextView android:id="@+id/scope_note" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:textSize="14sp" />
     </LinearLayout>
 </ScrollView>

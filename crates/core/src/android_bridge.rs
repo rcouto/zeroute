@@ -32,7 +32,7 @@ pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_apiVersion<'caller>(
     _class: JClass<'caller>,
 ) -> jint {
     unowned
-        .with_env(|_| Ok::<_, Error>(4))
+        .with_env(|_| Ok::<_, Error>(5))
         .resolve::<ThrowRuntimeExAndDefault>()
 }
 
@@ -94,11 +94,16 @@ pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_saveNetworkId<'calle
                 .map_err(|_| BridgeError("Settings unavailable."))?;
             let root = directory.to_string();
             let input = network_id.to_string();
+            if !crate::session::can_edit_settings() {
+                return JString::from_str(env, "Disconnect before changing the network.")
+                    .map_err(BridgeError::from);
+            }
             let message = settings::save(Path::new(&root), &input)
                 .err()
                 .map(|error| error.to_string())
                 .unwrap_or_default();
             if message.is_empty() {
+                crate::session::clear_inactive_failure();
                 engine::clear_inactive_error();
             }
             JString::from_str(env, message).map_err(BridgeError::from)
@@ -266,4 +271,75 @@ pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_trafficDiagnostics<'
             JString::from_str(env, text).map_err(BridgeError::from)
         })
         .resolve::<ThrowRuntimeExAndDefault>()
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_beginSession<'caller>(
+    mut env: EnvUnowned<'caller>,
+    _class: JClass<'caller>,
+) -> jlong {
+    env.with_env(|_| {
+        let _guard = SETTINGS_LOCK
+            .lock()
+            .map_err(|_| BridgeError("Settings unavailable."))?;
+        Ok::<_, BridgeError>(crate::session::begin() as jlong)
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
+}
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_sessionEvent<'caller>(
+    mut env: EnvUnowned<'caller>,
+    _class: JClass<'caller>,
+    token: jlong,
+    event: jint,
+) -> jni::sys::jboolean {
+    env.with_env(|_| Ok::<_, Error>(crate::session::event(token as u64, event)))
+        .resolve::<ThrowRuntimeExAndDefault>()
+}
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_sessionAccepts<'caller>(
+    mut env: EnvUnowned<'caller>,
+    _class: JClass<'caller>,
+    token: jlong,
+    phase: jint,
+) -> jni::sys::jboolean {
+    env.with_env(|_| Ok::<_, Error>(crate::session::accepts(token as u64, phase)))
+        .resolve::<ThrowRuntimeExAndDefault>()
+}
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_sessionFailure<'caller>(
+    mut env: EnvUnowned<'caller>,
+    _class: JClass<'caller>,
+    token: jlong,
+    reason: jint,
+) {
+    env.with_env(|_| {
+        crate::session::fail(token as u64, reason);
+        Ok::<_, Error>(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
+}
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_networkFacts<'caller>(
+    mut env: EnvUnowned<'caller>,
+    _class: JClass<'caller>,
+    flags: jint,
+    revision: jlong,
+) {
+    env.with_env(|_| {
+        crate::session::network(flags as u32, revision as u64);
+        Ok::<_, Error>(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
+}
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_statusSnapshot<'caller>(
+    mut env: EnvUnowned<'caller>,
+    _class: JClass<'caller>,
+) -> JString<'caller> {
+    env.with_env(|env| {
+        JString::from_str(env, crate::session::snapshot().map_err(BridgeError)?)
+            .map_err(BridgeError::from)
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }

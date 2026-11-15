@@ -9,7 +9,7 @@ through a Rust-owned IPv4/IPv6 packet adapter. Android provides a foreground
 VPN service, system consent, protected transport sockets and the TUN interface.
 The public node address is shown for controller admission. Default routes are
 ignored: this is initially a private-network VPN rather than an Internet exit.
-Managed DNS readiness requires an actual resolver reply. Direct ARM64 phone checks cover IPv6 ping, Android DNS, private HTTPS and
+Managed DNS is optional; when configured, resolver health requires an actual reply. Direct ARM64 phone checks cover IPv6 ping, Android DNS, private HTTPS and
 Disconnect. Network handovers, long-idle behavior and process-death recovery
 remain unverified; build checks alone do not establish VPN reliability.
 
@@ -40,7 +40,8 @@ The default build produces an **unsigned ARM64 APK**. It cannot be installed
 until separately signed. The build creates no release signing key and does
 not install applications or activate a VPN on any device.
 
-See [architecture](docs/architecture.md) and [CI and publication](docs/ci.md).
+See [adaptive UI](docs/adaptive-ui.md), [architecture](docs/architecture.md), [connection states and UX](docs/state-machine.md),
+[CI](docs/ci.md) and [source-first publication](docs/source-sharing.md).
 Application-owned code is MIT-licensed. The bundled upstream ZeroTier core retains its MPL-2.0 license, available in
 the app and at the locked upstream source. Other third-party components retain
 their respective licenses.

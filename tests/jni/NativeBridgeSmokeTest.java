@@ -31,6 +31,22 @@ public final class NativeBridgeSmokeTest {
         NativeBridge.vpnConfiguration().isEmpty(), "Stopped host must not expose tunnel settings");
     check(!NativeBridge.attachTunnel(-1, 0).isEmpty(), "Invalid tunnel attachment accepted");
     check(NativeBridge.trafficDiagnostics().isEmpty(), "Host must not invent tunnel traffic");
-    System.out.println("JNI settings/readiness smoke test passed");
+    long old = NativeBridge.beginSession();
+    check(old > 0 && NativeBridge.beginSession() == 0, "Duplicate consent attempt accepted");
+    check(
+        !NativeBridge.saveNetworkId(directory, "0123456789abcdef").isEmpty(),
+        "Settings changed during consent");
+    check(NativeBridge.sessionEvent(old, 3), "Pending consent could not be cancelled");
+    check(!NativeBridge.sessionEvent(old, 1), "Cancelled consent started a service");
+    long current = NativeBridge.beginSession();
+    check(!NativeBridge.sessionEvent(old, 1), "Stale consent accepted for new attempt");
+    check(NativeBridge.sessionEvent(current, 1), "Service handoff rejected");
+    check(NativeBridge.sessionEvent(current, 3), "Startup could not be cancelled");
+    check(NativeBridge.beginSession() == 0, "Connect accepted before cleanup acknowledgement");
+    check(NativeBridge.sessionEvent(current, 4), "Cleanup acknowledgement rejected");
+    check(
+        NativeBridge.statusSnapshot().split("\n", -1).length == 3, "Snapshot wire format mismatch");
+    check(NativeBridge.sessionAccepts(current, 0), "Stopped lifecycle not published");
+    System.out.println("JNI settings/readiness/lifecycle smoke test passed");
   }
 }

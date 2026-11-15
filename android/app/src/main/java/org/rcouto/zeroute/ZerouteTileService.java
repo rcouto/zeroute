@@ -8,24 +8,41 @@ import android.service.quicksettings.TileService;
 
 /** On-demand Android panel adapter; no polling or additional background worker. */
 public final class ZerouteTileService extends TileService {
+  private final ConnectionController.Listener listener = this::render;
+
   @Override
   public void onStartListening() {
     super.onStartListening();
+    try {
+      render(ConnectionStatus.read());
+      ConnectionController.subscribe(listener);
+    } catch (RuntimeException | LinkageError error) {
+      Tile tile = getQsTile();
+      if (tile != null) {
+        tile.setState(Tile.STATE_UNAVAILABLE);
+        tile.updateTile();
+      }
+    }
+  }
+
+  @Override
+  public void onStopListening() {
+    ConnectionController.unsubscribe(listener);
+    super.onStopListening();
+  }
+
+  @Override
+  public void onDestroy() {
+    ConnectionController.unsubscribe(listener);
+    super.onDestroy();
+  }
+
+  private void render(ConnectionStatus status) {
     Tile tile = getQsTile();
     if (tile == null) return;
-    try {
-      long state = NativeBridge.readiness();
-      tile.setState(state == 0 ? Tile.STATE_INACTIVE : Tile.STATE_ACTIVE);
-      if (Build.VERSION.SDK_INT >= 29) {
-        tile.setSubtitle(
-            getString(
-                state == 0
-                    ? R.string.state_stopped
-                    : state == 5 ? R.string.state_ready : R.string.tile_connecting));
-      }
-    } catch (RuntimeException | LinkageError error) {
-      tile.setState(Tile.STATE_UNAVAILABLE);
-    }
+    tile.setState(status.active() ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
+    if (Build.VERSION.SDK_INT >= 29) tile.setSubtitle(getString(status.title()));
+    tile.setContentDescription(getString(R.string.app_name) + ": " + getString(status.title()));
     tile.updateTile();
   }
 

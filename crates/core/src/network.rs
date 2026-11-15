@@ -48,6 +48,7 @@ pub struct Configuration {
     pub addresses: Vec<Prefix>,
     pub routes: Vec<Route>,
     pub dns: Vec<IpAddr>,
+    pub dns_requested: bool,
     pub domain: String,
 }
 fn unicast(ip: IpAddr) -> bool {
@@ -64,6 +65,7 @@ impl Configuration {
             addresses: Vec::new(),
             routes: Vec::new(),
             dns: Vec::new(),
+            dns_requested: false,
             domain: String::new(),
         };
         for line in text.lines() {
@@ -100,6 +102,7 @@ impl Configuration {
                     result.routes.push(Route { target: p, via });
                 }
                 ["d", value] => {
+                    result.dns_requested = true;
                     let ip: IpAddr = value.parse().map_err(|_| "Invalid managed DNS server.")?;
                     if !unicast(ip) || result.dns.len() >= 8 {
                         return Err("Invalid managed DNS server.");
@@ -209,6 +212,16 @@ impl Configuration {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn missing_dns_differs_from_configured_but_unroutable_dns() {
+        let absent = Configuration::parse(0x020000000001, 1280, "a 192.0.2.1/24").unwrap();
+        assert!(!absent.dns_requested);
+        let unreachable =
+            Configuration::parse(0x020000000001, 1280, "a 192.0.2.1/24\nd 198.51.100.53").unwrap();
+        assert!(unreachable.dns_requested);
+        assert!(unreachable.dns.is_empty());
+    }
+
     #[test]
     fn longest_route_gateway_and_exit_opt_in() {
         let c=Configuration::parse(0x020000000001,2800,"a 192.0.2.2/24\nr 198.51.100.0/24 192.0.2.1\nr 0.0.0.0/0 192.0.2.1\nd 192.0.2.53\ns example.test\n").unwrap();

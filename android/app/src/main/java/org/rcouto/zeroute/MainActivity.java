@@ -1,122 +1,138 @@
 package org.rcouto.zeroute;
 
-import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.StatusBarManager;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.ComponentName;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.net.VpnService;
+import android.graphics.drawable.Icon;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
+import android.provider.Settings;
+import android.view.View;
 import android.view.WindowInsets;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/** Adaptive framework presentation; Rust owns connection and lifecycle semantics. */
 public final class MainActivity extends Activity {
-  private final Handler handler = new Handler(Looper.getMainLooper());
-  private final ExecutorService settingsWorker = Executors.newSingleThreadExecutor();
+  private final ExecutorService worker = Executors.newSingleThreadExecutor();
+  private final ConnectionController.Listener listener = this::render;
+  private boolean loaded;
+  private boolean configured;
+  private boolean saving;
+  private boolean observing;
   private EditText networkId;
-  private Button save;
-  private boolean nativeReady;
-  private boolean settingsReady;
-  private boolean operationPending;
-  private boolean notificationsAsked;
-  private String lastEngineError = "";
-  private Button startEngine;
-  private Button stopEngine;
-
-  private final Runnable refresh =
-      new Runnable() {
-        @Override
-        public void run() {
-          if (!nativeReady) return;
-          renderReadiness();
-          if (nativeReady) handler.postDelayed(this, 1000);
-        }
-      };
+  private ConnectionStatus status;
 
   @Override
-  protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
+  protected void onCreate(Bundle saved) {
+    boolean contrast = getPreferences(MODE_PRIVATE).getBoolean("highContrast", false);
+    if (contrast) setTheme(R.style.ZerouteHighContrast);
+    super.onCreate(saved);
     setContentView(R.layout.activity_main);
-    findViewById(R.id.root)
-        .setOnApplyWindowInsetsListener((view, insets) -> {
-          if (Build.VERSION.SDK_INT >= 30) {
-            android.graphics.Insets bars =
-                insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
-          } else {
-            applyLegacyInsets(view, insets);
-          }
-          return insets;
-        });
-    findViewById(R.id.root).requestApplyInsets();
-    findViewById(R.id.core_license).setOnClickListener(view -> showCoreLicense());
-    findViewById(R.id.toggle_details)
-        .setOnClickListener(view -> {
-          boolean show = findViewById(R.id.details).getVisibility() != android.view.View.VISIBLE;
-          findViewById(R.id.details)
-              .setVisibility(show ? android.view.View.VISIBLE : android.view.View.GONE);
-          ((Button) view).setText(show ? R.string.details_hide : R.string.details_show);
-        });
-    findViewById(R.id.add_tile).setOnClickListener(view -> addTile());
-    networkId = findViewById(R.id.network_id);
-    save = findViewById(R.id.save_network);
-    startEngine = findViewById(R.id.start_engine);
-    stopEngine = findViewById(R.id.stop_engine);
-    startEngine.setEnabled(false);
-    stopEngine.setEnabled(false);
-    networkId.setEnabled(false);
-    save.setEnabled(false);
-    try {
-      if (NativeBridge.apiVersion() != NativeBridge.API_VERSION) {
-        throw new IllegalStateException("Native ABI mismatch");
-      }
-      nativeReady = true;
-      ((TextView) findViewById(R.id.core_version))
-          .setText(getString(R.string.core_version, NativeBridge.engineVersion()));
-    } catch (RuntimeException | LinkageError error) {
-      showMessage(R.string.native_unavailable);
-      return;
+    if (Build.VERSION.SDK_INT >= 28) {
+      findViewById(R.id.app_title).setAccessibilityHeading(true);
+      findViewById(R.id.connection_status).setAccessibilityHeading(true);
     }
-    settingsWorker.execute(() -> {
-      String stored = "";
-      boolean loaded = false;
-      try {
-        stored = NativeBridge.loadNetworkId(getNoBackupFilesDir().getAbsolutePath());
-        loaded = true;
-      } catch (RuntimeException error) {
-        // Show a generic error; never log native state or identity material.
-      }
-      final String savedId = stored;
-      final boolean settingsLoaded = loaded;
-      handler.post(() -> {
-        if (isDestroyed()) return;
-        if (savedInstanceState == null) networkId.setText(savedId);
-        if (savedId.isEmpty()) {
-          findViewById(R.id.details).setVisibility(android.view.View.VISIBLE);
-          ((Button) findViewById(R.id.toggle_details)).setText(R.string.details_hide);
-        }
-        settingsReady = true;
-        renderReadiness();
-        if (!settingsLoaded) showMessage(R.string.settings_unavailable);
-      });
+    View root = findViewById(R.id.root);
+    root.setOnApplyWindowInsetsListener((view, insets) -> {
+      if (Build.VERSION.SDK_INT >= 30) {
+        android.graphics.Insets bars =
+            insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
+        view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+      } else applyLegacyInsets(view, insets);
+      return insets;
     });
-    save.setOnClickListener(view -> saveNetwork());
-    startEngine.setOnClickListener(view -> requestVpn());
-    stopEngine.setOnClickListener(view ->
-        startService(
-            new Intent(this, ZerouteVpnService.class).setAction(ZerouteVpnService.ACTION_STOP)));
+    root.requestApplyInsets();
+    View content = findViewById(R.id.content);
+    content.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+      int base = (int) (24 * getResources().getDisplayMetrics().density);
+      int padding =
+          Math.max(base, (r - l - (int) (640 * getResources().getDisplayMetrics().density)) / 2);
+      if (v.getPaddingLeft() != padding) v.setPadding(padding, base, padding, base);
+    });
+    networkId = findViewById(R.id.network_id);
+    if (saved != null && saved.getBoolean("detailsExpanded")) showDetails(true);
+    findViewById(R.id.connection_action).setEnabled(false);
+    findViewById(R.id.save_network).setOnClickListener(v -> saveNetwork());
+    findViewById(R.id.connection_action)
+        .setOnClickListener(v -> {
+          if (status == null) return;
+          if (status.active()) ConnectionController.stop(this);
+          else if (!configured) {
+            showDetails(true);
+            networkId.requestFocus();
+          } else ConnectionController.connect(this);
+        });
+    findViewById(R.id.toggle_details)
+        .setOnClickListener(
+            v -> showDetails(findViewById(R.id.details).getVisibility() != View.VISIBLE));
+    View.OnClickListener copyNode =
+        v -> {
+          if (status != null && !status.node.isEmpty()) {
+            getSystemService(ClipboardManager.class)
+                .setPrimaryClip(ClipData.newPlainText(getString(R.string.node_label), status.node));
+            setText(R.id.message, getString(R.string.node_copied));
+          }
+        };
+    findViewById(R.id.copy_node).setOnClickListener(copyNode);
+    findViewById(R.id.copy_admission).setOnClickListener(copyNode);
+    findViewById(R.id.portal_action)
+        .setOnClickListener(v -> {
+          try {
+            startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
+          } catch (RuntimeException error) {
+            setText(R.id.message, getString(R.string.open_settings_manually));
+          }
+        });
+    CheckBox contrastBox = findViewById(R.id.high_contrast);
+    contrastBox.setChecked(contrast);
+    contrastBox.setOnCheckedChangeListener((button, checked) -> {
+      getPreferences(MODE_PRIVATE).edit().putBoolean("highContrast", checked).apply();
+      recreate();
+    });
+    findViewById(R.id.add_tile).setOnClickListener(v -> addTile());
+    findViewById(R.id.core_license).setOnClickListener(v -> showLicense());
+    try {
+      status = ConnectionStatus.read();
+      setText(R.id.core_version, getString(R.string.core_version, NativeBridge.engineVersion()));
+      worker.execute(() -> {
+        String stored = "";
+        boolean success = false;
+        try {
+          stored = NativeBridge.loadNetworkId(getNoBackupFilesDir().getAbsolutePath());
+          success = true;
+        } catch (RuntimeException ignored) {
+          /* No private state is logged. */
+        }
+        final String value = stored;
+        final boolean ok = success;
+        runOnUiThread(() -> {
+          if (isDestroyed()) return;
+          loaded = true;
+          configured = !value.isEmpty();
+          if (saved == null) networkId.setText(value);
+          if (!configured) showDetails(true);
+          render(ConnectionStatus.read());
+          if (!ok) setText(R.id.message, getString(R.string.settings_unavailable));
+        });
+      });
+      render(status);
+    } catch (RuntimeException | LinkageError error) {
+      setText(R.id.connection_status, getString(R.string.native_unavailable));
+    }
   }
 
   @SuppressWarnings("deprecation")
-  private void applyLegacyInsets(android.view.View view, WindowInsets insets) {
+  private void applyLegacyInsets(View view, WindowInsets insets) {
     view.setPadding(
         insets.getSystemWindowInsetLeft(),
         insets.getSystemWindowInsetTop(),
@@ -124,186 +140,190 @@ public final class MainActivity extends Activity {
         insets.getSystemWindowInsetBottom());
   }
 
-  private void addTile() {
-    if (Build.VERSION.SDK_INT >= 33) {
-      android.app.StatusBarManager manager = getSystemService(android.app.StatusBarManager.class);
-      manager.requestAddTileService(
-          new android.content.ComponentName(this, ZerouteTileService.class),
-          getString(R.string.app_name),
-          android.graphics.drawable.Icon.createWithResource(this, R.drawable.ic_vpn_tile),
-          getMainExecutor(),
-          result -> {});
-    } else {
-      showMessage(R.string.tile_help);
-    }
-  }
-
-  private void showCoreLicense() {
-    settingsWorker.execute(() -> {
-      String text;
-      try (Scanner scanner =
-          new Scanner(getResources().openRawResource(R.raw.zerotier_core_license), "UTF-8")) {
-        text = scanner.useDelimiter("\\A").next();
-      }
-      final String license = text;
-      handler.post(() -> {
-        if (!isDestroyed() && !isFinishing()) {
-          new AlertDialog.Builder(this)
-              .setTitle(R.string.core_license)
-              .setMessage(license)
-              .setPositiveButton(android.R.string.ok, null)
-              .show();
-        }
-      });
-    });
+  private void showDetails(boolean show) {
+    findViewById(R.id.details).setVisibility(show ? View.VISIBLE : View.GONE);
+    ((Button) findViewById(R.id.toggle_details))
+        .setText(show ? R.string.details_hide : R.string.details_show);
   }
 
   private void saveNetwork() {
-    final String input = networkId.getText().toString();
-    operationPending = true;
-    save.setEnabled(false);
-    settingsWorker.execute(() -> {
+    if (status == null || status.active() || saving) return;
+    String input = networkId.getText().toString();
+    saving = true;
+    render(status);
+    worker.execute(() -> {
       String failure;
       try {
         failure = NativeBridge.saveNetworkId(getNoBackupFilesDir().getAbsolutePath(), input);
       } catch (RuntimeException error) {
         failure = getString(R.string.settings_save_failed);
       }
-      final String message = failure;
-      handler.post(() -> {
+      final String result = failure;
+      runOnUiThread(() -> {
         if (isDestroyed()) return;
-        operationPending = false;
-        renderReadiness();
-        if (message.isEmpty()) {
+        saving = false;
+        if (result.isEmpty()) {
+          configured = true;
           networkId.setError(null);
-          showMessage(R.string.settings_saved);
-        } else {
-          networkId.setError(message);
-          showMessage(R.string.settings_save_failed);
-        }
+          setText(R.id.message, getString(R.string.settings_saved));
+        } else networkId.setError(result);
+        ConnectionController.publish();
       });
     });
   }
 
-  @SuppressWarnings("deprecation")
-  private void requestVpn() {
-    Intent consent = VpnService.prepare(this);
-    if (consent != null) startActivityForResult(consent, 100);
-    else connectVpn();
-  }
-
-  private void connectVpn() {
-    if (Build.VERSION.SDK_INT >= 33
-        && !notificationsAsked
-        && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-            != PackageManager.PERMISSION_GRANTED) {
-      notificationsAsked = true;
-      requestPermissions(new String[] {Manifest.permission.POST_NOTIFICATIONS}, 101);
-      return;
-    }
-    startVpnService();
-  }
-
-  @Override
-  public void onRequestPermissionsResult(
-      int requestCode, String[] permissions, int[] grantResults) {
-    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    if (requestCode == 101) startVpnService();
-  }
-
-  private void startVpnService() {
-    startForegroundService(
-        new Intent(this, ZerouteVpnService.class).setAction(ZerouteVpnService.ACTION_CONNECT));
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-    super.onActivityResult(requestCode, resultCode, data);
-    if (requestCode == 100 && resultCode == RESULT_OK) connectVpn();
-  }
-
-  private void renderReadiness() {
-    if (!nativeReady) return;
-    try {
-      long state = NativeBridge.readiness();
-      if (state < 0 || state > 5) throw new IllegalStateException("Unknown readiness state");
-      boolean active = state != 0;
-      startEngine.setVisibility(active ? android.view.View.GONE : android.view.View.VISIBLE);
-      stopEngine.setVisibility(active ? android.view.View.VISIBLE : android.view.View.GONE);
-      boolean available = (NativeBridge.capabilities() & NativeBridge.CAPABILITY_ENGINE) != 0;
-      startEngine.setEnabled(available && settingsReady && !active && !operationPending);
-      stopEngine.setEnabled(active && !operationPending);
-      save.setEnabled(settingsReady && !active && !operationPending);
-      networkId.setEnabled(settingsReady && !active && !operationPending);
-      String address = NativeBridge.nodeAddress();
-      ((TextView) findViewById(R.id.node_address))
-          .setText(
-              getString(
-                  R.string.node_address,
-                  address.isEmpty() ? getString(R.string.unknown) : address));
-      ((TextView) findViewById(R.id.control_plane_status))
-          .setText(
-              getString(
-                  R.string.control_plane_status,
-                  getString(
-                      NativeBridge.controlPlaneOnline()
-                          ? R.string.stage_ready
-                          : R.string.stage_waiting)));
-      ((TextView) findViewById(R.id.traffic_status)).setText(NativeBridge.trafficDiagnostics());
-      String failure = NativeBridge.engineError();
-      if (!failure.equals(lastEngineError)) {
-        ((TextView) findViewById(R.id.message)).setText(failure);
-        lastEngineError = failure;
-      }
-      int[] titles = {
-        R.string.state_stopped,
-        R.string.state_engine,
-        R.string.state_configuration,
-        R.string.state_tunnel,
-        R.string.state_dns,
-        R.string.state_ready
-      };
-      ((TextView) findViewById(R.id.connection_status)).setText(titles[(int) state]);
-      renderStage(R.id.engine_status, R.string.stage_engine, state >= 2);
-      renderStage(R.id.configuration_status, R.string.stage_configuration, state >= 3);
-      renderStage(R.id.tunnel_status, R.string.stage_tunnel, state >= 4);
-      renderStage(R.id.dns_status, R.string.stage_dns, state == 5);
-    } catch (RuntimeException error) {
-      nativeReady = false;
-      showMessage(R.string.native_unavailable);
-    }
-  }
-
-  private void renderStage(int viewId, int title, boolean ready) {
-    ((TextView) findViewById(viewId))
-        .setText(
+  private void render(ConnectionStatus current) {
+    if (isDestroyed()) return;
+    status = current;
+    boolean setup = loaded && !configured && !current.active();
+    setText(R.id.connection_status, getString(setup ? R.string.state_setup : current.title()));
+    setText(
+        R.id.status_description,
+        getString(setup ? R.string.description_setup : current.description()));
+    Button action = findViewById(R.id.connection_action);
+    int actionTitle =
+        current.phase == 4
+            ? R.string.state_stopping
+            : current.active()
+                ? (current.phase == 1 || current.phase == 2
+                    ? R.string.cancel_connect
+                    : R.string.stop_engine)
+                : setup
+                    ? R.string.setup_action
+                    : current.phase == 5 ? R.string.retry : R.string.start_engine;
+    setText(R.id.connection_action, getString(actionTitle));
+    action.setEnabled(loaded && !saving && current.phase != 4);
+    findViewById(R.id.save_network).setEnabled(loaded && !saving && !current.active());
+    networkId.setEnabled(loaded && !saving && !current.active());
+    setText(
+        R.id.tunnel_status,
+        getString(
+            R.string.stage_status,
+            getString(R.string.stage_tunnel),
+            getString(current.stage >= 4 ? R.string.stage_ready : R.string.stage_waiting)));
+    setText(
+        R.id.dns_status,
+        getString(
+            R.string.stage_status,
+            getString(R.string.stage_dns),
             getString(
-                R.string.stage_status,
-                getString(title),
-                getString(ready ? R.string.stage_ready : R.string.stage_waiting)));
+                current.stage >= 3 && !current.dnsConfigured
+                    ? R.string.dns_not_configured
+                    : current.state == 6 ? R.string.dns_responding : R.string.dns_no_evidence)));
+    setText(
+        R.id.control_plane_status,
+        getString(
+            R.string.control_plane_status,
+            getString(current.roots ? R.string.stage_ready : R.string.stage_waiting)));
+    setText(
+        R.id.node_address,
+        getString(
+            R.string.node_address,
+            current.node.isEmpty() ? getString(R.string.unknown) : current.node));
+    findViewById(R.id.copy_node).setEnabled(!current.node.isEmpty());
+    findViewById(R.id.admission).setVisibility(current.state == 8 ? View.VISIBLE : View.GONE);
+    setText(
+        R.id.admission_node,
+        getString(
+            R.string.node_address,
+            current.node.isEmpty() ? getString(R.string.unknown) : current.node));
+    findViewById(R.id.copy_admission).setEnabled(!current.node.isEmpty());
+    findViewById(R.id.portal_action)
+        .setVisibility((current.network & 8) != 0 ? View.VISIBLE : View.GONE);
+    StringBuilder transport = new StringBuilder();
+    if ((current.network & 16) != 0) transport.append(getString(R.string.wifi));
+    if ((current.network & 32) != 0) {
+      if (transport.length() > 0) transport.append(" / ");
+      transport.append(getString(R.string.mobile));
+    }
+    if ((current.network & 64) != 0) {
+      if (transport.length() > 0) transport.append(" / ");
+      transport.append(getString(R.string.ethernet));
+    }
+    if (transport.length() == 0)
+      transport.append(
+          getString(
+              (current.network & 1) == 0
+                  ? R.string.unknown
+                  : (current.network & 2) != 0 ? R.string.other_network : R.string.no_network));
+    setText(R.id.underlay_status, getString(R.string.available_networks, transport));
+    String notice =
+        (current.network & 8) != 0
+            ? getString(R.string.portal_notice)
+            : (current.network & 1) != 0 && (current.network & 2) != 0 && (current.network & 4) == 0
+                ? getString(R.string.validation_unknown)
+                : "";
+    setText(R.id.network_notice, notice);
+    setText(R.id.engine_error, current.error);
+    setText(
+        R.id.scope_note,
+        getString(current.phase == 0 ? R.string.scope_disconnected : R.string.scope_private));
   }
 
-  private void showMessage(int message) {
-    ((TextView) findViewById(R.id.message)).setText(message);
+  private void setText(int id, String value) {
+    TextView view = findViewById(id);
+    if (!value.contentEquals(view.getText())) view.setText(value);
+  }
+
+  private void addTile() {
+    if (Build.VERSION.SDK_INT >= 33)
+      getSystemService(StatusBarManager.class)
+          .requestAddTileService(
+              new ComponentName(this, ZerouteTileService.class),
+              getString(R.string.app_name),
+              Icon.createWithResource(this, R.drawable.ic_vpn_tile),
+              getMainExecutor(),
+              result -> {});
+    else setText(R.id.message, getString(R.string.tile_help));
+  }
+
+  private void showLicense() {
+    worker.execute(() -> {
+      try (Scanner scanner =
+          new Scanner(getResources().openRawResource(R.raw.zerotier_core_license), "UTF-8")) {
+        String text = scanner.useDelimiter("\\A").next();
+        runOnUiThread(() -> {
+          if (!isDestroyed())
+            new AlertDialog.Builder(this)
+                .setTitle(R.string.core_license)
+                .setMessage(text)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+        });
+      }
+    });
+  }
+
+  @Override
+  protected void onSaveInstanceState(Bundle out) {
+    out.putBoolean("detailsExpanded", findViewById(R.id.details).getVisibility() == View.VISIBLE);
+    super.onSaveInstanceState(out);
   }
 
   @Override
   protected void onResume() {
     super.onResume();
-    handler.post(refresh);
+    if (status != null) {
+      ConnectionController.acquireUnderlay(this);
+      observing = true;
+    }
+    ConnectionController.subscribe(listener);
   }
 
   @Override
   protected void onPause() {
-    handler.removeCallbacks(refresh);
+    ConnectionController.unsubscribe(listener);
+    if (observing) {
+      ConnectionController.releaseUnderlay();
+      observing = false;
+    }
     super.onPause();
   }
 
   @Override
   protected void onDestroy() {
-    handler.removeCallbacksAndMessages(null);
-    settingsWorker.shutdown();
+    ConnectionController.unsubscribe(listener);
+    worker.shutdown();
     super.onDestroy();
   }
 }

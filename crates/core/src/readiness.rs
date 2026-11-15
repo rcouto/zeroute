@@ -22,6 +22,7 @@ pub enum Observation {
     NetworkConfigured(bool),
     TunnelEstablished(bool),
     DnsReady(bool),
+    DnsConfigured(bool),
 }
 
 /// Attempt identifier used to reject callbacks from an earlier connection.
@@ -38,6 +39,7 @@ pub struct Connection {
     configuration: bool,
     tunnel: bool,
     dns: bool,
+    dns_configured: Option<bool>,
 }
 
 impl Readiness {
@@ -73,6 +75,7 @@ impl Connection {
         self.configuration = false;
         self.tunnel = false;
         self.dns = false;
+        self.dns_configured = None;
     }
 
     /// Return false for a stopped or obsolete attempt. Events that assert a
@@ -93,6 +96,7 @@ impl Connection {
             Observation::EngineRunning(online) => {
                 self.engine = online;
                 if !online {
+                    self.dns_configured = None;
                     self.control_plane_online = false;
                     self.configuration = false;
                     self.tunnel = false;
@@ -105,6 +109,7 @@ impl Connection {
                 }
                 self.configuration = configured;
                 if !configured {
+                    self.dns_configured = None;
                     self.tunnel = false;
                     self.dns = false;
                 }
@@ -115,6 +120,15 @@ impl Connection {
                 }
                 self.tunnel = established;
                 if !established {
+                    self.dns = false;
+                }
+            }
+            Observation::DnsConfigured(configured) => {
+                if !self.configuration {
+                    return false;
+                }
+                self.dns_configured = Some(configured);
+                if !configured {
                     self.dns = false;
                 }
             }
@@ -147,7 +161,7 @@ impl Connection {
             Readiness::WaitingForConfiguration
         } else if !self.tunnel {
             Readiness::WaitingForTunnel
-        } else if !self.dns {
+        } else if !self.dns && self.dns_configured != Some(false) {
             Readiness::WaitingForDns
         } else {
             Readiness::Ready
@@ -158,6 +172,19 @@ impl Connection {
 #[cfg(test)]
 mod tests {
     use super::{Connection, Observation, Readiness};
+
+    #[test]
+    fn dns_is_optional_but_configured_dns_requires_evidence() {
+        let mut connection = Connection::default();
+        let attempt = connection.start();
+        connection.observe(attempt, Observation::EngineRunning(true));
+        connection.observe(attempt, Observation::NetworkConfigured(true));
+        connection.observe(attempt, Observation::DnsConfigured(false));
+        connection.observe(attempt, Observation::TunnelEstablished(true));
+        assert_eq!(connection.readiness(), Readiness::Ready);
+        connection.observe(attempt, Observation::DnsConfigured(true));
+        assert_eq!(connection.readiness(), Readiness::WaitingForDns);
+    }
 
     #[test]
     fn engine_running_does_not_mean_vpn_ready() {
