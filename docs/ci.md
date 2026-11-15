@@ -25,6 +25,10 @@ GitHub repository, mirror or release publication has been created. Keep signing
 material outside Git and the Nix store, and protect release credentials from PR
 jobs. Unsigned CI artifacts require no signing credentials.
 
+Source sharing is the agreed first publication stage; public APK distribution
+is deferred. See [source-first publication](source-sharing.md) for the proposed
+review and mirror boundary. This review adds no CI or publication job.
+
 ## Implementation validation
 
 Nineteen host Rust tests cover settings persistence, stale readiness events,

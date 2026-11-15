@@ -1,5 +1,10 @@
 # Architecture
 
+The [connection state and UX review](state-machine.md) documents the current
+implicit state machine, edge cases and proposed presentation contract.
+[Source-first publication](source-sharing.md) separates source sharing from
+future APK distribution. These reviews do not change runtime behavior.
+
 Rust owns settings, readiness, engine lifetime, UDP transport, persistence and
 diagnostics. A small Java Activity handles Android UI and forwards calls across
 JNI using the maintained jni crate. The upstream ZeroTier core owns discovery,

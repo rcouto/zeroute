@@ -40,7 +40,8 @@ The default build produces an **unsigned ARM64 APK**. It cannot be installed
 until separately signed. The build creates no release signing key and does
 not install applications or activate a VPN on any device.
 
-See [architecture](docs/architecture.md) and [CI and publication](docs/ci.md).
+See [architecture](docs/architecture.md), [connection states and UX](docs/state-machine.md),
+[CI](docs/ci.md) and [source-first publication](docs/source-sharing.md).
 Application-owned code is MIT-licensed. The bundled upstream ZeroTier core retains its MPL-2.0 license, available in
 the app and at the locked upstream source. Other third-party components retain
 their respective licenses.
