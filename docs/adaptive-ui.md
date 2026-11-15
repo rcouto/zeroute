@@ -84,7 +84,8 @@ restriction policy and explicit underlay selection remain deferred.
 
 The tile subscribes while listening and rereads current state on the next bind;
 its active state means a pending/running/stopping session, including degraded
-operation. It does not add a polling timer. Locked-device use still requires
+operation. A tap sends the displayed explicit Connect or Disconnect intent; an
+intervening backend failure cannot turn a Disconnect tap into a new connection. It does not add a polling timer. Locked-device use still requires
 unlocking; adding a tile and VPN consent remain user-controlled Android prompts.
 The ongoing notification uses the same title and a token-scoped Stop action.
 Updates use NotificationManager without re-entering foreground eligibility after

@@ -31,6 +31,11 @@ public final class VpnControlActivity extends Activity {
         }
         if (awaitingResult) return;
       } else {
+        if (getIntent().getBooleanExtra("stopOnly", false)) {
+          ConnectionController.stop(this);
+          finish();
+          return;
+        }
         if (!getIntent().getBooleanExtra("connectOnly", false)
             && ConnectionStatus.read().active()) {
           ConnectionController.stop(this);
