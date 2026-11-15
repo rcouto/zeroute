@@ -89,6 +89,7 @@ pub fn fail(token: u64, reason: i32) {
                     2 => "Android could not establish the VPN interface.",
                     3 => "VPN permission was revoked or another VPN took over.",
                     4 => "The VPN service stopped unexpectedly.",
+                    6 => "Android did not allow the VPN foreground service to start.",
                     _ => "The VPN could not complete shutdown.",
                 })
                 .into();

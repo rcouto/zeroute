@@ -79,7 +79,13 @@ public final class ZerouteVpnService extends VpnService {
       ConnectionController.acquireUnderlay(this);
       ownsUnderlay = true;
     }
-    showForegroundNotification();
+    try {
+      showForegroundNotification();
+    } catch (RuntimeException error) {
+      NativeBridge.sessionFailure(token, 6);
+      requestStop(true);
+      return START_NOT_STICKY;
+    }
     final long attempt = token;
     worker.execute(() -> {
       if (closing || monitor != null || !NativeBridge.sessionAccepts(attempt, 2)) return;
@@ -137,12 +143,12 @@ public final class ZerouteVpnService extends VpnService {
       notifications.notify(1, notification);
       return;
     }
-    foreground = true;
     if (Build.VERSION.SDK_INT >= 34) {
       startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED);
     } else {
       startForeground(1, notification);
     }
+    foreground = true;
   }
 
   private String notificationStatus() {
@@ -249,7 +255,13 @@ public final class ZerouteVpnService extends VpnService {
     if (failure) NativeBridge.sessionFailure(stoppingToken, 2);
     else NativeBridge.sessionEvent(stoppingToken, 3);
     ConnectionController.publish();
-    if (foreground) showForegroundNotification();
+    if (foreground) {
+      try {
+        showForegroundNotification();
+      } catch (RuntimeException ignored) {
+        /* Teardown must not depend on notification delivery. */
+      }
+    }
     worker.execute(() -> {
       // The platform can keep a VPN service bound after stopSelf(). Release the
       // TUN and native transport first; onDestroy is only a cleanup fallback.

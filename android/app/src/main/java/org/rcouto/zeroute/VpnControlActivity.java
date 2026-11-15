@@ -108,7 +108,7 @@ public final class VpnControlActivity extends Activity {
                 .putExtra("token", token));
         handedOff = true;
       } catch (RuntimeException error) {
-        NativeBridge.sessionFailure(token, 1);
+        NativeBridge.sessionFailure(token, 6);
         NativeBridge.sessionEvent(token, 4);
       }
     }

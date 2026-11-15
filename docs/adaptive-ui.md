@@ -34,7 +34,8 @@ pending or active. Native engine attempt/configuration guards remain in place.
 A single private consent Activity is used by both app and tile. Notification
 permission denial does not cancel VPN startup. Revocation stops the session and
 retains a failure explanation; the app does not automatically take back control
-from another VPN. Initial native startup failures retain their original cause.
+from another VPN. Initial native startup failures retain their original cause. Android foreground
+startup rejection is caught and reported without taking down the UI process.
 
 Disconnecting remains visible while the Java descriptor closes and the native
 worker stops/joins. Only successful cleanup acknowledges Idle; failure leaves a
