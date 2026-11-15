@@ -1,7 +1,8 @@
 # Architecture
 
-The [connection state and UX review](state-machine.md) documents the current
-implicit state machine, edge cases and proposed presentation contract.
+The [adaptive connection UI](adaptive-ui.md) describes the implemented lifecycle,
+shared status snapshot and Android presentation. The [state-machine review](state-machine.md)
+retains the baseline analysis and wider edge-case inventory.
 [Source-first publication](source-sharing.md) separates source sharing from
 future APK distribution. These reviews do not change runtime behavior.
 
@@ -134,18 +135,14 @@ the route probe succeeds. The operator confirmed private HTTPS loads in Firefox.
 probe alone cannot establish application DNS; Android resolver and browser
 checks remain separate acceptance evidence.
 
-### Quick Settings control
+### Adaptive Android control
 
-The main screen keeps connection control visible and folds network settings and
-diagnostics into a disclosure. Its Add Quick Settings tile button asks Android
-for user confirmation (Android 13+); older versions use the panel edit menu.
-The non-active TileService reads native readiness when the panel opens, with no
-extra timer. Active means the engine is running; the subtitle distinguishes
-connecting from DNS-ready. It does not continuously refresh an already-open panel.
-A private translucent activity handles the toggle and Android VPN consent. Missing
-settings open the main screen. Locked-device use requires unlocking. Existing
-foreground-service notification behavior is unchanged.
-
-Battery consumption has not been measured. Existing service monitoring and DNS
-probes remain unchanged; this UI change adds no periodic background work. Idle,
-cellular and handover measurements are required before quoting battery rates.
+One adaptive native screen provides a primary connection action and optional high
+contrast. Rust owns command generations and lifecycle/presentation semantics; JNI
+API 5 provides one snapshot to the Activity, tile and foreground notification.
+Explicit teardown acknowledgement gates Disconnected and subsequent starts.
+DNS is optional; configured resolver health and individual peer/application
+reachability remain separate. Non-VPN Android network callbacks drive underlay
+notices and fresh resolver evidence on network changes. The tile refreshes while
+listening without another polling timer. See [adaptive UI](adaptive-ui.md) for
+behavior, evidence boundaries and pending device acceptance.

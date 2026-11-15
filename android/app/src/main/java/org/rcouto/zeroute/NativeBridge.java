@@ -1,7 +1,7 @@
 package org.rcouto.zeroute;
 
 final class NativeBridge {
-  static final int API_VERSION = 4;
+  static final int API_VERSION = 5;
   static final int CAPABILITY_ENGINE = 1;
 
   static {
@@ -11,6 +11,18 @@ final class NativeBridge {
   private NativeBridge() {}
 
   static native int apiVersion();
+
+  static native long beginSession();
+
+  static native boolean sessionEvent(long token, int event);
+
+  static native boolean sessionAccepts(long token, int phase);
+
+  static native void sessionFailure(long token, int reason);
+
+  static native void networkFacts(int flags, long revision);
+
+  static native String statusSnapshot();
 
   static native int capabilities();
 

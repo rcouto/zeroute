@@ -1,0 +1,13 @@
+<resources>
+    <style name="ZerouteTheme" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#B4D7BE</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+    <style name="ZerouteHighContrast" parent="ZerouteTheme">
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="android:textColorSecondary">#EFEFEF</item>
+        <item name="android:colorAccent">#FFFFFF</item>
+    </style>
+</resources>

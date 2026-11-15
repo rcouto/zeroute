@@ -186,6 +186,12 @@ impl Bridge {
             });
         }
     }
+    pub fn invalidate_dns(&mut self) {
+        self.dns_ready = false;
+        self.last_dns = None;
+        self.probe = None;
+        self.next_probe = 0;
+    }
     pub fn diagnostics(&self) -> String {
         format!(
             "Overlay TX {} RX {}; drops invalid={} source={} route={}; neighbor queue={}",
@@ -722,6 +728,20 @@ mod tests {
         b.receive(0x020000000053, b.config.mac, 0x0800, &reply, 2);
         assert!(b.dns_ready);
         assert!(b.probe.is_none());
+        b.invalidate_dns();
+        assert!(!b.dns_ready);
+        b.receive(0x020000000053, b.config.mac, 0x0800, &reply, 3);
+        assert!(
+            !b.dns_ready,
+            "a response from the old network cannot restore readiness"
+        );
+        b.tick(4);
+        assert!(b.probe.is_some());
+        b.receive(0x020000000053, b.config.mac, 0x0800, &reply, 5);
+        assert!(
+            !b.dns_ready,
+            "the old transaction cannot satisfy the new probe"
+        );
         b.tick(31003);
         assert!(!b.dns_ready);
         b.receive(0x020000000053, b.config.mac, 0x0800, &reply, 31004);

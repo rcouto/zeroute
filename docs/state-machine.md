@@ -1,7 +1,8 @@
 # Connection state and user experience
 
-Status: source review of `fe65654`, 2026-11-15. Current behavior below is grounded
-in the implementation; proposed behavior is not implemented or runtime-proven.
+Status: baseline source review of `fe65654`, 2026-11-15. The baseline below
+describes that revision; the later [adaptive UI implementation](adaptive-ui.md)
+implements part of this proposal and documents remaining acceptance gaps.
 This is a broad interaction/failure inventory, not a claim that every platform
 or device edge case has been reproduced. Source sharing is the first publication
 stage; see [source sharing](source-sharing.md).

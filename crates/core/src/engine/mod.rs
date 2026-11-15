@@ -15,6 +15,8 @@ struct State {
     configuration: Option<(u64, Configuration)>,
     revision: u64,
     diagnostics: String,
+    issue: u32,
+    proof_revision: u64,
 }
 
 static STATE: LazyLock<Mutex<State>> = LazyLock::new(|| {
@@ -25,6 +27,8 @@ static STATE: LazyLock<Mutex<State>> = LazyLock::new(|| {
         configuration: None,
         revision: 0,
         diagnostics: String::new(),
+        issue: 0,
+        proof_revision: 0,
     })
 });
 
@@ -33,6 +37,9 @@ pub struct Snapshot {
     pub control_plane_online: bool,
     pub address: u64,
     pub error: Option<&'static str>,
+    pub dns_configured: bool,
+    pub issue: u32,
+    pub proof_revision: u64,
 }
 
 pub fn snapshot() -> Result<Snapshot, &'static str> {
@@ -42,6 +49,12 @@ pub fn snapshot() -> Result<Snapshot, &'static str> {
         control_plane_online: state.connection.control_plane_online(),
         address: state.address,
         error: state.error,
+        dns_configured: state
+            .configuration
+            .as_ref()
+            .is_some_and(|(_, c)| c.dns_requested),
+        issue: state.issue,
+        proof_revision: state.proof_revision,
     })
 }
 
@@ -90,7 +103,11 @@ pub fn start_protected(
     mut protect: impl FnMut(i32) -> bool,
 ) -> Result<(), &'static str> {
     #[cfg(all(zerotier_core, target_os = "android"))]
-    return native::start(root, &mut protect);
+    return native::start(root, &mut protect).inspect_err(|error| {
+        if let Ok(mut state) = STATE.lock() {
+            state.error = Some(error);
+        }
+    });
     #[cfg(not(all(zerotier_core, target_os = "android")))]
     {
         let _ = (&mut protect, root);
@@ -119,4 +136,11 @@ pub fn diagnostics() -> Result<String, &'static str> {
         .map_err(|_| "Connection state unavailable.")?
         .diagnostics
         .clone())
+}
+
+pub fn refresh_network(revision: u64) {
+    #[cfg(all(zerotier_core, target_os = "android"))]
+    native::refresh_network(revision);
+    #[cfg(not(all(zerotier_core, target_os = "android")))]
+    let _ = revision;
 }

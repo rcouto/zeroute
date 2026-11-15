@@ -1,5 +1,5 @@
-//! Single-owner native engine loop. Android routing/TUN is deliberately absent
-//! from this bring-up stage, so root/configuration observations never imply VPN readiness.
+//! Single-owner core, protected UDP transport and generation-scoped TUN adapter.
+//! Root/configuration observations alone never establish application reachability.
 
 use super::{STATE, State};
 use crate::network::Configuration;
@@ -16,7 +16,7 @@ use std::os::unix::fs::OpenOptionsExt;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use std::ptr::NonNull;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, SyncSender};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
@@ -74,10 +74,12 @@ struct Plane {
     bridge: Option<Bridge>,
     tun: Option<OwnedFd>,
     revision: u64,
+    refresh_revision: u64,
 }
 
 struct Running {
     commands: SyncSender<Command>,
+    refresh: Arc<AtomicU64>,
     stop: Arc<AtomicBool>,
     wake: Arc<OwnedFd>,
     thread: JoinHandle<()>,
@@ -92,6 +94,7 @@ struct Context {
     ipv6: Option<UdpSocket>,
     stop: Arc<AtomicBool>,
     failed: AtomicBool,
+    refresh: Arc<AtomicU64>,
     storage: Mutex<()>,
     plane: Mutex<Plane>,
     urgent: AtomicBool,
@@ -179,8 +182,11 @@ pub(super) fn start(root: &Path, protect: &mut dyn FnMut(i32) -> bool) -> Result
     // SAFETY: this is the unique owner of the successfully created descriptor.
     let wake = Arc::new(unsafe { OwnedFd::from_raw_fd(wake_fd) });
     let stop = Arc::new(AtomicBool::new(false));
+    let refresh = Arc::new(AtomicU64::new(0));
     let attempt = {
         let mut state = STATE.lock().map_err(|_| "Connection state unavailable.")?;
+        state.issue = 0;
+        state.proof_revision = 0;
         state.address = 0;
         state.diagnostics.clear();
         state.configuration = None;
@@ -195,6 +201,7 @@ pub(super) fn start(root: &Path, protect: &mut dyn FnMut(i32) -> bool) -> Result
         ipv6,
         stop: stop.clone(),
         failed: AtomicBool::new(false),
+        refresh: refresh.clone(),
         storage: Mutex::new(()),
         plane: Mutex::new(Plane::default()),
         urgent: AtomicBool::new(false),
@@ -223,8 +230,22 @@ pub(super) fn start(root: &Path, protect: &mut dyn FnMut(i32) -> bool) -> Result
         wake,
         thread,
         commands,
+        refresh,
     });
     Ok(())
+}
+
+pub(super) fn refresh_network(revision: u64) {
+    if let Ok(owner) = RUNNING.lock()
+        && let Some(running) = owner.as_ref()
+    {
+        running.refresh.store(revision, Ordering::Release);
+        let signal = 1u64;
+        // SAFETY: wake is live and signal points to eight initialized bytes.
+        unsafe {
+            libc::write(running.wake.as_raw_fd(), (&signal as *const u64).cast(), 8);
+        }
+    }
 }
 
 pub(super) fn stop() -> Result<(), &'static str> {
@@ -674,6 +695,8 @@ extern "C" fn configuration(
         let mut replacement = None;
         update(context, |state| match parsed {
             Ok(config) => {
+                let dns_configured = config.dns_requested;
+                let dns_unroutable = dns_configured && config.dns.is_empty();
                 if state.configuration.as_ref().map(|(_, c)| c) != Some(&config) {
                     state.revision = state
                         .revision
@@ -688,9 +711,18 @@ extern "C" fn configuration(
                 state
                     .connection
                     .observe(context.attempt, Observation::NetworkConfigured(true));
-                state.error = None;
+                state
+                    .connection
+                    .observe(context.attempt, Observation::DnsConfigured(dns_configured));
+                state.issue = 0;
+                state.error = if dns_unroutable {
+                    Some("Managed DNS is configured, but no server has a usable private route.")
+                } else {
+                    None
+                };
             }
             Err(error) => {
+                state.issue = u32::try_from(status).unwrap_or(0);
                 state.configuration = None;
                 state
                     .connection
@@ -813,6 +845,19 @@ fn drive(
         fail(context, "VPN state unavailable.");
         return;
     };
+    let revision = context.refresh.load(Ordering::Acquire);
+    if revision != plane.refresh_revision {
+        if let Some(bridge) = &mut plane.bridge {
+            bridge.invalidate_dns();
+        }
+        plane.refresh_revision = revision;
+        update(context, |state| {
+            state
+                .connection
+                .observe(context.attempt, Observation::DnsReady(false));
+            state.proof_revision = revision;
+        });
+    }
     while let Ok(Command::Attach { fd, revision }) = commands.try_recv() {
         if revision == plane.revision && plane.bridge.is_some() {
             plane.tun = Some(fd);

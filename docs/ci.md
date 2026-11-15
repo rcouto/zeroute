@@ -89,3 +89,16 @@ The sandboxed pre-commit check receives the same lock-file-derived Cargo vendor
 closure as the host Rust package through git-hooks.nix
 `settings.rust.check.cargoDeps`. Offline Clippy must not depend on a developer
 Cargo cache. This reuses existing dependencies and adds no job or ABI.
+
+## Adaptive UI validation
+
+The adaptive UI uses the existing host and ARM64 jobs and dependencies. Twenty-five
+host tests include new lifecycle/optional-DNS regression cases, with stale DNS
+response coverage extended in the packet test. JNI API 5 smoke checks exercise
+consent cancellation, duplicate start rejection, settings serialization and
+teardown acknowledgement. The source changes require the existing Rust native
+output and APK to rebuild; the upstream core/toolchain definitions are unchanged.
+Final APK/lint evidence and CI status are reported on the implementation PR.
+Phone evidence above applies to the prior app; adaptive-layout, lifecycle and
+network-change acceptance on physical devices remains pending. See
+[adaptive UI](adaptive-ui.md).
