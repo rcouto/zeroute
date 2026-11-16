@@ -9,6 +9,7 @@ import android.service.quicksettings.TileService;
 /** On-demand Android panel adapter; no polling or additional background worker. */
 public final class ZerouteTileService extends TileService {
   private final ConnectionController.Listener listener = this::render;
+  private boolean displayedActive;
 
   @Override
   public void onStartListening() {
@@ -40,7 +41,8 @@ public final class ZerouteTileService extends TileService {
   private void render(ConnectionStatus status) {
     Tile tile = getQsTile();
     if (tile == null) return;
-    tile.setState(status.active() ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
+    displayedActive = status.active();
+    tile.setState(displayedActive ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
     if (Build.VERSION.SDK_INT >= 29) tile.setSubtitle(getString(status.title()));
     tile.setContentDescription(getString(R.string.app_name) + ": " + getString(status.title()));
     tile.updateTile();
@@ -49,13 +51,17 @@ public final class ZerouteTileService extends TileService {
   @Override
   public void onClick() {
     super.onClick();
-    if (isLocked()) unlockAndRun(this::openControl);
-    else openControl();
+    final boolean disconnect = displayedActive;
+    if (isLocked()) unlockAndRun(() -> openControl(disconnect));
+    else openControl(disconnect);
   }
 
-  private void openControl() {
+  private void openControl(boolean disconnect) {
     Intent intent =
-        new Intent(this, VpnControlActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        new Intent(this, VpnControlActivity.class)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            .putExtra("stopOnly", disconnect)
+            .putExtra("connectOnly", !disconnect);
     if (Build.VERSION.SDK_INT >= 34) {
       startActivityAndCollapse(
           PendingIntent.getActivity(
