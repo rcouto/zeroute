@@ -1,9 +1,11 @@
 # CI and publication
 
-Gitea is the private working repository. The bootstrap was merged through PR #1.
-Buildbot discovery uses the `buildbot-rcouto` topic; its account has admin
-collaborator access for webhook management. Publishing an implementation branch
-and running its PR checks remain separate from targeted remote builds.
+Maintainer review and Buildbot CI run in a private Gitea repository. GitHub is
+the public source and contribution entry point; it has no configured CI or
+automatic PR import. Contributors need no private access. Maintainers report
+sanitized validation results on the public PR, merge accepted changes privately,
+and publish the resulting commits to GitHub. A GitHub PR with no checks is not
+CI approval. See [contribution guidance](../CONTRIBUTING.md).
 
 ## Build scope and caching
 
@@ -20,14 +22,12 @@ core-integration and full CI timings remain unmeasured; ordinary builds do not
 resolve unpinned dependencies. Refresh the dependency inventory explicitly when
 changing Gradle dependencies.
 
-Public GitHub sharing remains a separately authorized push-mirror setup; no
-GitHub repository, mirror or release publication has been created. Keep signing
-material outside Git and the Nix store, and protect release credentials from PR
-jobs. Unsigned CI artifacts require no signing credentials.
-
-Source sharing is the agreed first publication stage; public APK distribution
-is deferred. See [source-first publication](source-sharing.md) for the proposed
-review and mirror boundary. This review adds no CI or publication job.
+Public source is available at [rcouto/zeroute](https://github.com/rcouto/zeroute).
+Updates currently require an explicit maintainer publication; continuous
+synchronization remains inactive. Public APK distribution is deferred. Signing
+material stays outside Git and the Nix store, and unsigned CI artifacts require
+no signing credentials. Never expose credentials to unreviewed contributor code.
+See [source-first publication](source-sharing.md) for the current boundary.
 
 ## Implementation validation
 
@@ -36,7 +36,7 @@ configuration validation, private-route policy, bounded packet queues, ARP,
 an IPv6 neighbor/data exchange, and DNS matching/readiness expiry. Host Clippy,
 Android Rust typechecking and the versioned Java/JNI smoke test pass. The full
 ARM64 native library, APK assembly, Android lint and packaging checks passed on
-builder-nix. Linking rejects unresolved symbols; archive checks require AArch64,
+the selected remote builder. Linking rejects unresolved symbols; archive checks require AArch64,
 the JNI entry point and shared Android libc. The scoped prepared-VPN lint
 exception is explained in [architecture](architecture.md).
 
@@ -62,7 +62,7 @@ reliability.
 
 With toolchains and the core archive cached, one bring-up build reported 2m 28s
 for APK assembly and 34s for lint. The final DNS compatibility build reported
-1m 10s for assembly and 29s for lint. These are targeted builder-nix runs, not
+1m 10s for assembly and 29s for lint. These are targeted the selected remote builder runs, not
 fresh CI or clean-machine benchmarks.
 
 ## Bootstrap measurements
