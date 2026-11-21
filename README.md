@@ -13,6 +13,22 @@ Managed DNS is optional; when configured, resolver health requires an actual rep
 Disconnect. Network handovers, long-idle behavior and process-death recovery
 remain unverified; build checks alone do not establish VPN reliability.
 
+## Source and contributions
+
+[GitHub](https://github.com/rcouto/zeroute) is the public source and contribution
+entry point. Development, maintainer merges and Buildbot CI run in a private
+Gitea repository; contributors do not need access to it. GitHub currently receives
+manual source updates, so this copy can lag behind development. No GitHub CI,
+automatic PR import or continuous synchronization is configured.
+
+**Contributions are welcome through GitHub pull requests.** Fork this repository,
+make a focused change and open a PR against `main`. Maintainers bring selected
+changes into private review, run the existing checks and report a sanitized result
+on the GitHub PR. Accepted changes merge in Gitea and are then published here;
+maintainers close the GitHub PR with links to the accepted public commits. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and local checks. This is a
+personal project with no promised review or support turnaround.
+
 ## Development
 
 ```console

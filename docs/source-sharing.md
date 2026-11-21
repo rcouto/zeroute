@@ -1,59 +1,61 @@
 # Source-first publication
 
-Status: agreed publication sequence; this review does not create a public remote
-or enable synchronization. Stage one shares source; stage two, distributing APKs,
-is a later decision. This is independent of the proposed connection UX work.
+## Current state
 
-## Stage one: public source
+Public source is available at [rcouto/zeroute](https://github.com/rcouto/zeroute).
+Gitea remains the private development source and Buildbot remains CI. GitHub
+accepts public contribution PRs; see [CONTRIBUTING.md](../CONTRIBUTING.md).
+Contributors need no access to private services.
 
-Gitea remains the working repository and Buildbot remains CI. The intended public
-surface is a GitHub repository synchronized from Gitea, with source, license,
-build instructions and an honest experimental/support statement. No Android
-Developer account or release signing key is needed merely to share Git source.
+The initial publication retained existing `main` history and author metadata.
+Public updates are currently manual: no continuous push mirror, automatic PR
+import or GitHub CI is configured. GitHub can therefore lag behind development.
+Maintainers review selected public contributions privately, report sanitized
+validation results on the public PR, merge in Gitea, and publish accepted commits
+back to GitHub before closing the original PR with public commit links.
 
-Before enabling synchronization, prepare a reviewable publication configuration:
+Source sharing is separate from distributing APKs. The project is experimental,
+maintained for personal use, with no support or compatibility commitment.
 
-- Identify the GitHub owner, repository name and visibility; retain Gitea as the
-  authoritative write/PR destination and explain that in the public README.
-- Review tracked files and the history actually being shared for credentials,
-  identity state, keystores, private logs/device inventories and generated APKs.
-  Public-source review includes branches/tags selected by the mirror, not just
-  the latest tree. Do not publish private diagnostic artifacts or local test keys.
-- Verify application and bundled-dependency license notices against pinned
-  sources. The current application is MIT; bundled upstream core licensing is
-  distinct. Do not imply upstream sponsorship or product support.
-- Document private-network scope, Android permission use, current limitations,
-  reproducible build steps, and how to report issues without posting identities,
-  credentials or packet contents. Device acceptance is not a reliability promise.
-- Choose synchronization direction, branch/tag scope and failure visibility.
-  Prefer a native repository push mirror over another CI build job; credentials
-  stay in the service credential store, never repository files or Nix outputs.
-  Prepare source-hosting protection and review settings before making it public.
-- Keep public source synchronization separate from CI artifacts, APK releases,
-  signing, app-store registration and installation. Source sharing alone neither
-  signs nor updates installed applications.
+## Continuous synchronization, not activated
 
-The UI review needs no remote operations. Actual repository creation/mirror
-activation must use the owner's approved destination and publication scope.
-If infrastructure reconciliation is managed by the infrastructure repository,
-follow its Terranix/OpenTofu ownership rules rather than inventing a new sync job.
+Prepare and review infrastructure declarations before enabling one-way updates
+from Gitea to GitHub. Native Gitea push mirrors copy branches and tags and can
+force-update the destination; the reviewed API exposes no main-only filter.
+Ref scope and credential storage remain decisions. A provider argument marked
+sensitive can still persist in infrastructure state; do not assume it is
+write-only or ephemeral. Do not create a mirror merely to leave its timer off:
+creation itself can trigger publication.
 
-## Stage two: APK distribution, deferred
+Review the files and history included by the selected scope, including future
+branches/tags, for identities, credentials and diagnostic artifacts. Keep
+credentials outside Git and Nix outputs. Use the infrastructure repository's
+Den/Terranix/OpenTofu conventions rather than adding a separate synchronization
+engine or another CI compilation job.
 
-Decide stable application identity/versioning, signing-key custody and recovery,
-upgrade compatibility with existing test installations, download/update channel,
-privacy/license material and release verification before distributing APKs.
-Existing phones use a development signing key; do not assume a differently signed
-release can update them without migration. No key rotation, new signing job,
-GitHub Release, store submission or public APK is part of stage one.
+A source mirror alone would not import public PRs, expose private CI to public
+branches, report checks on GitHub, or synchronize PR discussion and closure.
+Those behaviors require separate design and authorization. The current manual
+contribution workflow remains the policy until a replacement is documented.
 
-## Cost and evidence
+## APK distribution, deferred
 
-This documentation changes no CI work. A source push mirror is expected to need
-an initial Git transfer plus incremental syncs, not Android compilation; transfer
-size, service behavior and timings have not been measured. No extra build/cache
-cost is approved by this proposal. If the selected integration adds CI jobs or
-builds, agree on their costs and cache invalidation before implementation.
+Before public APK distribution, decide stable versioning/application identity,
+signing-key custody and recovery, upgrade compatibility, the update channel,
+complete third-party notices and corresponding-source information, and release
+verification. Existing test installs use a development key; a differently signed
+release cannot be assumed to update them in place. No public APK, signing job,
+GitHub Release or app-store submission is part of source publication.
 
-See [CI and publication](ci.md), [connection state](state-machine.md) and
-[architecture](architecture.md).
+Application-owned code is MIT; the pinned upstream ZeroTier core is separately
+MPL-2.0. Other bundled components retain their respective licenses. Source
+sharing does not imply upstream sponsorship or product support.
+
+## Cost boundary
+
+This documentation adds no CI job, dependency or build target. Proposed continuous
+source synchronization would add Git transfer, with unmeasured timings, rather
+than Android compilation. Discuss any added build jobs, architectures or tooling
+cost before implementing automation.
+
+See [CI and publication](ci.md) and [architecture](architecture.md).
