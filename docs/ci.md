@@ -36,7 +36,8 @@ configuration validation, private-route policy, bounded packet queues, ARP,
 an IPv6 neighbor/data exchange, and DNS matching/readiness expiry. Host Clippy,
 Android Rust typechecking and the versioned Java/JNI smoke test pass. The full
 ARM64 native library, APK assembly, Android lint and packaging checks passed on
-the selected remote builder. Linking rejects unresolved symbols; archive checks require AArch64,
+the selected remote builder. Linking rejects unresolved symbols; archive checks
+require AArch64,
 the JNI entry point and shared Android libc. The scoped prepared-VPN lint
 exception is explained in [architecture](architecture.md).
 
@@ -62,8 +63,7 @@ reliability.
 
 With toolchains and the core archive cached, one bring-up build reported 2m 28s
 for APK assembly and 34s for lint. The final DNS compatibility build reported
-1m 10s for assembly and 29s for lint. These are targeted the selected remote builder runs, not
-fresh CI or clean-machine benchmarks.
+1m 10s for assembly and 29s for lint. These are targeted remote builds, not fresh CI or clean-machine benchmarks.
 
 ## Bootstrap measurements
 
