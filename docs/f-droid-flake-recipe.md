@@ -12,12 +12,34 @@ commands. Its metadata reference supports `sudo` for privileged builder setup,
 does not require us to replace Nix with Gradle: Nix already invokes Gradle after
 building/staging the native backend and notices.
 
-This establishes a possible integration interface, not approval of Nix's
-bootstrap, dependencies, caches or source-review model. Searches of the indexed
-F-Droid metadata mirror found no `nix-bin`, `nix-build` or `nix build` recipe
-precedent. That search is not exhaustive proof that none exists. The inspected
-Nix-on-Droid application metadata uses Gradle; the app's name/runtime use of Nix
-is not evidence that F-Droid builds it using a flake.
+## Confirmed upstream precedent: SimpleX Chat
+
+F-Droid's canonical `chat.simplex.app.yml` contains current source-build entries
+that prepare `/nix` and invoke SimpleX's Android build script. The inspected
+7.1.4 ARM64 entry pins source commit
+`62ea5dc4afb73a0256ba0088f0ae85be750afc99`.
+That exact script installs hash-verified Nix 2.22.0 in single-user mode, enables
+flakes with sandboxing, builds native libraries through `nix build`, then runs
+Gradle for the Android package. This is a genuine Nix/flake build precedent,
+not merely an application that uses Nix at runtime.
+
+F-Droid's inclusion policy explicitly lists prebuilt FLOSS binaries from Nix
+caches among sources that can be acceptable, while preferring Debian-packaged
+options when available. Therefore a blanket claim that Nix/cache use is
+unsupported is incorrect. A successful example does not approve every cache,
+package or recipe; Zeroute still needs its own working packaging evidence.
+
+The earlier indexed searches were incomplete: they missed Nix invoked indirectly
+by an upstream script. Inspect canonical metadata and follow its actual scripts.
+Nix-on-Droid's Gradle packaging is an unrelated comparison, not evidence against
+the SimpleX precedent. An official 2024 F-Droid news post also describes SimpleX's
+Nix builds and their substantial Haskell toolchain cost; that timing is not an
+estimate for Zeroute.
+
+Reuse the proven shape (approved bootstrap, writable store, flakes, source build,
+explicit unsigned APK output), while keeping all Zeroute build steps inside its
+existing flake. Do not copy SimpleX's lint relaxations, retry commands, multiple
+ABIs, timeout or VM-specific ownership assumptions as requirements for Zeroute.
 
 ## Candidate metadata shape
 
@@ -87,32 +109,17 @@ Do not run it as an official F-Droid proof until those prerequisites are agreed.
 
 ## Proposed next step
 
-Prepare a focused packager question describing this candidate and these source
-and cache boundaries, before investing in another build implementation. Posting
-that question or submitting metadata requires explicit authorization; no message
-has been sent upstream. If Nix is acceptable, inspect the concrete closure and
-agree to one build-server-compatible trial on the selected remote builder.
+Adapt the confirmed SimpleX packaging shape into a concrete Zeroute recipe that
+invokes the existing `apk` flake output; no separate native build pipeline is
+needed on the present evidence. First inspect the bootstrap/download and native
+rebuild plan and obtain the trial's resource agreement. Keep it ARM64-only on the
+selected remote builder and verify the actual F-Droid interfaces/scanners.
 
-If maintainers reject the Nix approach, retain their concrete reason and discuss
-choices: address the specific incompatibility, explicitly approve another recipe,
-or consider an own F-Droid-compatible binary repository with its additional
-hosting/signing burden. Do not silently switch to a duplicate build pipeline.
-
-## Prepared packager question (not sent)
-
-> We maintain [Zeroute](https://github.com/rcouto/zeroute), an experimental
-> MIT-licensed Android ZeroTier client with a separately MPL-licensed native core.
-> Its public, locked Nix flake builds the core and Rust JNI library from source,
-> then invokes Gradle to produce an unsigned ARM64 APK with bundled notices.
-> Would a custom fdroiddata build invoking `nix build .#apk` be acceptable in
-> principle, using an approved Nix bootstrap in the build VM?
->
-> Which Nix toolchain substitutions would be permitted, and which outputs must be
-> rebuilt? How should pinned application/library sources fetched into the Nix
-> store be exposed to F-Droid's pre-build source scanner and source archive?
-> We want to retain one build definition, avoid using prebuilt application/native
-> outputs as source-build evidence, and understand these constraints before a
-> submission or expensive compatibility trial.
+A generic permission question about whether F-Droid permits Nix is no longer a
+prerequisite. Ask packagers only about concrete unresolved Zeroute-specific
+policy or builder constraints if the recipe investigation finds one. No upstream
+message has been sent. If a specific incompatibility appears, retain the evidence
+and discuss alternatives before changing build architecture.
 
 ## Sources and limits
 
@@ -120,8 +127,10 @@ hosting/signing burden. Do not silently switch to a duplicate build pipeline.
 - [Build metadata: setup, custom build and APK output](https://f-droid.org/en/docs/Build_Metadata_Reference/)
 - [Inclusion and permitted binary provenance](https://f-droid.org/docs/Inclusion_Policy/)
 - [fdroidserver build/scanner ordering](https://gitlab.com/fdroid/fdroidserver/-/blob/master/fdroidserver/build.py)
-- [Nix-on-Droid app metadata inspected as a limited comparison](https://gitlab.com/fdroid/fdroiddata/-/blob/master/metadata/com.termux.nix.yml)
+- [Canonical SimpleX F-Droid recipe](https://gitlab.com/fdroid/fdroiddata/-/blob/master/metadata/chat.simplex.app.yml)
+- [Exact SimpleX build script inspected](https://github.com/simplex-chat/simplex-chat/blob/62ea5dc4afb73a0256ba0088f0ae85be750afc99/scripts/android/build-android.sh)
+- [F-Droid news confirming SimpleX Nix builds](https://f-droid.org/2024/02/08/twif.html)
 
-These sources were checked on 2026-11-22. Interface support is documented; Nix
-acceptance and technical compatibility are still open. The YAML is neither linted
+These sources were checked on 2026-11-22. Nix/flake use has a confirmed precedent;
+Zeroute-specific technical compatibility remains untested. The YAML is neither linted
 as fdroiddata metadata nor executed, and makes no claim of inclusion eligibility.

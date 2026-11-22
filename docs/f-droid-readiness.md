@@ -12,9 +12,9 @@ tool. Its declarative setup is not a defect, and there is no established
 requirement here to maintain a second Gradle/NDK/Rust pipeline.
 
 F-Droid supports custom build commands and an explicit APK output, so invoking
-`nix build .#apk` is a candidate integration. Compatibility and acceptance remain
-unproven: review Nix bootstrap, source scanning, substitution policy and builder
-resources before a trial. See the [flake-based recipe investigation](f-droid-flake-recipe.md).
+`nix build .#apk` is a candidate integration. SimpleX Chat provides a confirmed Nix/flake build precedent, and F-Droid policy
+explicitly permits some Nix-cache binaries. Zeroute-specific compatibility remains
+untested: review bootstrap, scanning, substitution and resources before a trial. See the [flake-based recipe investigation](f-droid-flake-recipe.md).
 Do not upload the development-signed APK or claim that a Nix cache hit proves
 F-Droid source-build or reproducibility requirements.
 
@@ -54,8 +54,9 @@ The lock resolves the Rust overlay and nixpkgs cross toolchain, while the versio
 catalog selects Android/JDK requirements. A recipe should consume these owners
 rather than introduce separate drifting toolchain versions.
 
-The missing proof is whether F-Droid can bootstrap Nix and build that package
-while satisfying its source/binary scanning and dependency policies. Native
+SimpleX demonstrates that F-Droid can bootstrap Nix and build flake outputs.
+The remaining proof is a working Zeroute recipe satisfying the applicable
+source/binary scanning and dependency policies. Native
 sources fetched into the Nix store must still be reviewable; application/library
 binary substitution cannot silently stand in for source compilation. Exact
 Nix/tool versions and policies need to be recorded for a successful trial.
@@ -112,8 +113,8 @@ nor key operations are performed by this assessment.
 
 ## Proposed sequence and cost agreement
 
-1. Review the flake-based recipe and confirm F-Droid policy/builder feasibility
-   before agreeing to one ARM64 source-build trial on the selected remote builder.
+1. Adapt the confirmed SimpleX Nix/flake packaging precedent to Zeroute and
+   agree to one ARM64 source-build trial on the selected remote builder.
    Inspect tool/source downloads and substitution policy before starting. Produce a
    real-backend APK, Android lint/packaging evidence and a measured build record.
    No new CI job or architecture is proposed for this trial.
