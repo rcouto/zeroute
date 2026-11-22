@@ -6,11 +6,17 @@ is changed by this assessment. The source baseline is main `b1e6009`.
 
 ## Recommendation
 
-Pursue inclusion in the main F-Droid repository after a source-build compatibility
-trial. Retain Nix as the developer/CI build; prove a small F-Droid-compatible
-Gradle/NDK/Rust source recipe before committing to a distribution pipeline.
-Do not upload the current development-signed APK or claim the Nix APK is already
-reproducible in F-Droid's environment.
+Pursue inclusion using the existing Nix flake first. Nix supplies the locked
+inputs and orchestrates compilation, including Gradle as the Android packaging
+tool. Its declarative setup is not a defect, and there is no established
+requirement here to maintain a second Gradle/NDK/Rust pipeline.
+
+F-Droid supports custom build commands and an explicit APK output, so invoking
+`nix build .#apk` is a candidate integration. Compatibility and acceptance remain
+unproven: review Nix bootstrap, source scanning, substitution policy and builder
+resources before a trial. See the [flake-based recipe investigation](f-droid-flake-recipe.md).
+Do not upload the development-signed APK or claim that a Nix cache hit proves
+F-Droid source-build or reproducibility requirements.
 
 ## Current evidence and gaps
 
@@ -33,41 +39,31 @@ use honestly and ask maintainers whether an exception applies; two owner devices
 are not a guarantee of acceptance. The separate client implementation and its
 connection/readiness UX should be explained rather than presented as rebranding.
 
-## Build compatibility: concrete blockers
+## Build compatibility: integrate the existing flake
 
-`modules/android.nix` stages `libzeroute_core.so` and the upstream MPL text before
-Gradle runs. Those files are not tracked source. `MainActivity` references the
-staged raw license resource, so plain Gradle is not currently a self-contained
-source build. Building Rust without `ZEROUTE_CORE_DIR` also deliberately excludes
-the real backend; successfully compiling that fallback would not prove a working
-F-Droid VPN.
+`modules/android.nix` stages the Rust/ZeroTier shared library and upstream MPL
+resource before invoking Gradle. This is normal Nix build orchestration. A plain
+Gradle invocation is incomplete, but a plain Gradle invocation is not a stated
+requirement for F-Droid inclusion. The existing `apk` package remains the intended
+single build entry point. It already depends on the real native backend; do not
+substitute a backend-free Cargo build as distribution evidence.
 
-A candidate source recipe must obtain the same pinned ZeroTier source, build its
-core-only static library, compile the Rust/JNI adapter for Android ARM64, stage
-that shared library and notices, then run Gradle from `android/` with the release
-version supplied. Preserve the current flags and boundaries:
+Keep the same source owners and current core-only flags, Android API 26 minimum,
+16 KiB native alignment, shared Android libc, runtime archives and symbol checks.
+The lock resolves the Rust overlay and nixpkgs cross toolchain, while the version
+catalog selects Android/JDK requirements. A recipe should consume these owners
+rather than introduce separate drifting toolchain versions.
 
-- `ZT_EXTOSDEP=1`, `ZT_SSO_SUPPORTED=0`, `ZT_CONTROLLER=0`, `ZT_NONFREE=0`;
-- Android API 26 minimum, 16 KiB native alignment and undefined-symbol rejection;
-- shared Android libc, with only the required C++ runtime archives linked;
-- no dependency on a private forge, cache, credential, phone identity or Nix store
-  path when F-Droid fetches source and rebuilds the app.
+The missing proof is whether F-Droid can bootstrap Nix and build that package
+while satisfying its source/binary scanning and dependency policies. Native
+sources fetched into the Nix store must still be reviewable; application/library
+binary substitution cannot silently stand in for source compilation. Exact
+Nix/tool versions and policies need to be recorded for a successful trial.
 
-The build currently pins AGP 8.13.2, compile/target SDK 36, build-tools 36.0.0,
-Java 21 and NDK major 27 through the version catalog plus locked Nix inputs.
-Rust selects `stable.latest` from the locked overlay, so it is repeatable for the
-lock but not a literal version F-Droid can use without resolving that lock.
-Record exact resolved Rust, NDK, Gradle and toolchain revisions for a release;
-do not introduce a second drifting version owner. Prove the upstream NDK compiler
-invocations and runtime-file queries outside Nix wrappers instead of assuming
-cross-toolchain equivalence. Choose a reviewed source mechanism such as pinned
-F-Droid source-library metadata; do not add a Git submodule or scanner exclusions
-as an unreviewed shortcut.
-
-Prefer shared small native build steps if the compatibility trial reveals a
-necessary helper. Keep Nix on standard nixpkgs language helpers; do not replace
-its functioning packaging pipeline merely to match a speculative F-Droid recipe.
-No helper or recipe is implemented by this document.
+No separate native build helper, alternative toolchain pipeline or accepted
+F-Droid recipe has been implemented. If maintainers identify a concrete blocker
+to the flake approach, discuss that evidence and alternatives before choosing a
+second build implementation.
 
 ## Licensing review boundary
 
@@ -109,15 +105,16 @@ F-Droid-signed source builds.
 
 Neither signing choice alone preserves the current installations across a
 certificate change. Android backup is disabled and no secure identity
-export/import UI is implemented. Do not uninstall existing apps, clear data or
-promise identity preservation. Plan an explicit migration (potentially new node
-authorization) separately, or deliberately design an isolated application ID if
-parallel installations are required. This assessment performs no key operation.
+export/import UI is implemented. The owner accepts uninstalling the test apps
+when the distribution release is ready, followed by entering network settings and authorizing new node identities.
+This acceptance is not authorization to uninstall now; neither device changes
+nor key operations are performed by this assessment.
 
 ## Proposed sequence and cost agreement
 
-1. Agree to one ARM64 source-build compatibility trial on the selected remote
-   builder. Inspect tool/source download requirements before starting. Produce a
+1. Review the flake-based recipe and confirm F-Droid policy/builder feasibility
+   before agreeing to one ARM64 source-build trial on the selected remote builder.
+   Inspect tool/source downloads and substitution policy before starting. Produce a
    real-backend APK, Android lint/packaging evidence and a measured build record.
    No new CI job or architecture is proposed for this trial.
 2. After compatibility evidence, choose signing/channel identity and the existing
@@ -138,8 +135,9 @@ Do not treat a cached Nix APK as proof that the new recipe is cheap or compatibl
 Keep compilation bounded and use the already selected remote builder; no local
 system/package build, emulator download or additional ABI is proposed.
 
-Nix CI can keep reusing its locked native/toolchain outputs. A separate source
-recipe will not automatically reuse those compiled outputs; source, upstream
+Nix CI can keep reusing its locked native/toolchain outputs. A flake recipe should
+reuse the same locked build definitions. F-Droid acceptance may require rebuilding
+application/native library outputs instead of substituting them; source, upstream
 revision, Rust, NDK and compiler changes invalidate the relevant native work.
 Metadata-only edits leave native inputs unchanged. Reproducibility testing would
 add an independent clean rebuild and APK comparison; agree on that cost before
