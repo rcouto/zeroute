@@ -102,3 +102,28 @@ Final APK/lint evidence and CI status are reported on the implementation PR.
 Phone evidence above applies to the prior app; adaptive-layout, lifecycle and
 network-change acceptance on physical devices remains pending. See
 [adaptive UI](adaptive-ui.md).
+
+## Keep lint advisory feeds out of dependency locking
+
+The dependency inventory must contain versioned build artifacts, not live lint
+advisory/version feeds. A disposable Debian build with an empty Nix store found
+that Google's `play-sdk/index/snapshot.gz` had changed since recording, causing
+a fixed-output hash mismatch hidden by warm-store builds. The Maven
+`master-index.xml` and `com/android/application/group-index.xml` endpoints have
+the same mutable-URL risk; they are not application dependencies.
+
+The standard pinned nixpkgs Gradle hook runs normal builds with `--offline`.
+AGP passes that mode to lint, which avoids remote advisory connections and uses
+its bundled SDK index. Android lint remains enabled with warnings as errors.
+Live advisory freshness is not claimed by this reproducible build.
+
+After `nix run .#update-gradle-deps`, review the inventory and remove these
+recording-only feeds if lint requested them during the online refresh:
+
+- `https://dl.google.com/play-sdk/index/snapshot.gz`
+- `https://maven.google.com/master-index.xml`
+- `https://maven.google.com/com/android/application/group-index.xml`
+
+Do not merely refresh their hashes: the next upstream update would break a cold
+build again. Retain all versioned Maven artifacts needed by assembly and lint,
+and validate the resulting inventory with the ordinary sandboxed APK build.

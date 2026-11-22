@@ -106,3 +106,19 @@ completed with no additional actions reported for the existing APK. This is warm
 package availability, not fresh F-Droid bootstrap or source-compilation evidence.
 Do not replace the preparation workstation's larger estimate with a zero-cost
 claim for a disposable builder.
+
+## Disposable bootstrap trial
+
+A subsequent trial used Debian bookworm slim with an empty `/nix`, no Nix profile
+and no mounted host store/cache. Nix 2.35.6 bootstrap passed with sandboxing enabled
+and fallback forbidden. The actual cold plan was 63 derivation actions and 739
+substitutes: 3.1 GiB downloaded and 6.0 GiB unpacked, plus source/SDK fetches and
+build space. Container namespace/mount preparation was required; this was not the
+standard F-Droid builder image or a complete F-Droid scanner trial.
+
+The build failed on a changed Google Play SDK advisory snapshot recorded in the
+Gradle inventory. This exposed a reproducibility defect that warm caches hid.
+The inventory now excludes that feed and two mutable Maven version indexes;
+normal offline lint remains enabled. See [inventory refresh guidance](../../docs/ci.md#keep-lint-advisory-feeds-out-of-dependency-locking).
+The corrected APK trial result remains pending; bootstrap success alone does not
+establish APK or F-Droid acceptance.

@@ -224,17 +224,6 @@
   "dl/android/maven2/com/google/testing/platform#core-proto/0.0.9-alpha03": {
    "jar": "sha256-0AHrDMu/yMueqhk6NY5jcSl0Y5d1ZHvpSasjLCsptAc=",
    "pom": "sha256-O7RSgN8d0clrmgFySmFFZrfWDTNFP81SwsdB+ZmcOk4="
-  },
-  "play-sdk/index/snapshot": {
-   "gz": "sha256-3IRF1v2J+2WOdNM98rOA0BWnXO+ZCINzeJnuK0PbQdI="
-  }
- },
- "https://maven.google.com": {
-  "com/android/application/group-index": {
-   "xml": "sha256-tCPGUB0Y9FJcNzicezhH9PpgQL/fmY1AkIjqcWaP3aw="
-  },
-  "master-index": {
-   "xml": "sha256-bSHnsKAmpz5WAp1Ja3cXJLGrqMM4UEqX4MwQeItX0ZE="
   }
  },
  "https://repo.maven.apache.org/maven2": {
