@@ -1,0 +1,27 @@
+Categories:
+  - Connectivity
+License: MPL-2.0
+SourceCode: https://github.com/rcouto/zeroute
+RepoType: git
+Repo: https://github.com/rcouto/zeroute.git
+MaintainerNotes: |-
+  Candidate only; not submitted. App-owned source is MIT, with a bundled MPL-2.0
+  core and other FLOSS dependencies. Complete the binary notice/license review
+  before enabling. All app compilation is owned by the locked Nix flake.
+  The shell adapter only bootstraps Nix and invokes that existing build.
+  Use the standard disposable F-Droid build user; never run sudo setup on an
+  ordinary workstation. No Gradle or NDK version is independently pinned here.
+Builds:
+  - versionName: 0.1.0
+    versionCode: 1
+    disable: 'Preparation only: release tag, notices, signing and F-Droid trial pending'
+    commit: RELEASE_TAG_REQUIRED
+    sudo:
+      - apt-get update
+      - apt-get install -y ca-certificates curl git xz-utils
+      - test -e /nix || install -d -m 0755 -o vagrant -g vagrant /nix
+    output: result/zeroute-arm64-unsigned.apk
+    build:
+      - ./packaging/fdroid/build.sh --bootstrap --build
+AutoUpdateMode: None
+UpdateCheckMode: None

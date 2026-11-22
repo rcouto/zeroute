@@ -1,8 +1,8 @@
 # Flake-based F-Droid recipe investigation
 
-Status: candidate design, not a submitted or tested F-Droid recipe. No Nix install,
-new build, VM, scanner run, key operation or submission was performed. The existing
-flake remains the single intended build implementation.
+Status: concrete candidate adapter, not a submitted or F-Droid-tested recipe.
+Preparation adds no Nix bootstrap, APK compilation, VM, signing operation or
+submission. The existing flake remains the single build implementation.
 
 ## What the documented interface permits
 
@@ -41,43 +41,24 @@ explicit unsigned APK output), while keeping all Zeroute build steps inside its
 existing flake. Do not copy SimpleX's lint relaxations, retry commands, multiple
 ABIs, timeout or VM-specific ownership assumptions as requirements for Zeroute.
 
-## Candidate metadata shape
+## Concrete candidate adapter
 
-The following is deliberately disabled and illustrative. `commit` and version
-must be replaced with approved release values. No actual metadata file is enabled
-in this repository or in fdroiddata.
+The [candidate metadata](../packaging/fdroid/org.rcouto.zeroute.yml) and
+[thin shell adapter](../packaging/fdroid/build.sh) now implement the SimpleX shape
+around the existing flake. See their [operator/readiness notes](../packaging/fdroid/README.md)
+for the explicit modes and bootstrap boundary. The metadata is still disabled,
+uses a release-commit placeholder and is not submitted.
 
-```yaml
-License: MIT
-SourceCode: https://github.com/rcouto/zeroute
-RepoType: git
-Repo: https://github.com/rcouto/zeroute.git
-Builds:
-  - versionName: 0.1.0
-    versionCode: 1
-    disable: Draft only; Nix bootstrap, source scanning and substitution policy unverified
-    commit: NOT_A_RELEASE
-    output: result/zeroute-arm64-unsigned.apk
-    build:
-      - >-
-        nix --extra-experimental-features 'nix-command flakes'
-        build --no-update-lock-file --no-write-lock-file
-        --max-jobs 2 --cores 2 --option max-substitution-jobs 2 .#apk
-AutoUpdateMode: None
-UpdateCheckMode: None
-```
+With Nix present, `build.sh --dry-run` inspects the current executor's needs
+without compiling. The separately approved `--build` mode invokes `.#apk` with
+bounded resources, sandboxing, official-cache-only substitution and no lockfile
+changes. An opt-in bootstrap for a prepared disposable builder verifies the
+pinned official installer before execution; it is not run during preparation.
 
-The MIT field describes application-owned code, not a blanket license for every
-bundled component. Confirm the correct metadata/license representation with the
-completed dependency inventory. Version code 1 here describes the current build,
-not a decided release scheme. Automatic release detection is deliberately off
-in this draft; future tags/version parsing require review.
-
-A reviewed `sudo`/setup step must supply a suitable Nix version (for example, an
-approved Debian package) and usable store/build-user configuration. No installer
-URL or `curl | sh` is assumed. The command above alone does not establish the
-accepted substitution policy, source inventory, bootstrap or network access.
-Do not run it as an official F-Droid proof until those prerequisites are agreed.
+The candidate metadata represents the combined binary as MPL-2.0, while owned
+source remains MIT; complete the dependency/notices review before enabling it.
+Version code 1 describes the current build, not a decided release scheme. No
+release tag, signing automation or auto-update mode is enabled.
 
 ## Specific questions to resolve before a trial
 
@@ -109,11 +90,11 @@ Do not run it as an official F-Droid proof until those prerequisites are agreed.
 
 ## Proposed next step
 
-Adapt the confirmed SimpleX packaging shape into a concrete Zeroute recipe that
-invokes the existing `apk` flake output; no separate native build pipeline is
-needed on the present evidence. First inspect the bootstrap/download and native
-rebuild plan and obtain the trial's resource agreement. Keep it ARM64-only on the
-selected remote builder and verify the actual F-Droid interfaces/scanners.
+Inspect the candidate wrapper's dry-run on the actual trial executor, review its
+bootstrap and download needs, and obtain agreement for the native compilation
+trial. Keep it ARM64-only on the selected remote builder and verify the actual
+F-Droid interfaces/scanners. The bootstrap/download plan is not covered by a warm
+Nix output or by the dry-run of an already-installed Nix.
 
 A generic permission question about whether F-Droid permits Nix is no longer a
 prerequisite. Ask packagers only about concrete unresolved Zeroute-specific
@@ -132,5 +113,6 @@ and discuss alternatives before changing build architecture.
 - [F-Droid news confirming SimpleX Nix builds](https://f-droid.org/2024/02/08/twif.html)
 
 These sources were checked on 2026-11-22. Nix/flake use has a confirmed precedent;
-Zeroute-specific technical compatibility remains untested. The YAML is neither linted
-as fdroiddata metadata nor executed, and makes no claim of inclusion eligibility.
+Zeroute-specific F-Droid compatibility remains untested. Preparation checks shell
+syntax/lint and YAML parsing; these are not full fdroiddata lint, scanner or build
+proof, and make no claim of inclusion eligibility.
