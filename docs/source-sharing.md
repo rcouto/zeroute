@@ -8,8 +8,12 @@ accepts public contribution PRs; see [CONTRIBUTING.md](../CONTRIBUTING.md).
 Contributors need no access to private services.
 
 The initial publication retained existing `main` history and author metadata.
-Public updates are currently manual: no continuous push mirror, automatic PR
-import or GitHub CI is configured. GitHub can therefore lag behind development.
+Public updates currently use the required maintainer step in
+[repository steering](../AGENTS.md#publish-github-after-an-approved-gitea-merge):
+after an approved Gitea main merge, push main to GitHub without force and verify
+matching commits.
+No continuous push mirror, automatic PR import or GitHub CI is configured; a
+failed publication must be reported separately from a successful private merge.
 Maintainers review selected public contributions privately, report sanitized
 validation results on the public PR, merge in Gitea, and publish accepted commits
 back to GitHub before closing the original PR with public commit links.
@@ -19,19 +23,20 @@ maintained for personal use, with no support or compatibility commitment.
 
 ## Continuous synchronization, not activated
 
-Prepare and review infrastructure declarations before enabling one-way updates
-from Gitea to GitHub. Native Gitea push mirrors copy branches and tags and can
-force-update the destination; the reviewed API exposes no main-only filter.
-Ref scope and credential storage remain decisions. A provider argument marked
-sensitive can still persist in infrastructure state; do not assume it is
-write-only or ephemeral. Do not create a mirror merely to leave its timer off:
-creation itself can trigger publication.
+Manage Gitea repository settings and native push mirrors through Gitea
+UI or supported `tea` API, not OpenTofu. Native synchronization is blocked by
+[upstream NAT64 rejection](https://github.com/go-gitea/gitea/issues/40142).
+Review and approve the settings before enabling one-way updates to GitHub.
+Native Gitea push mirrors copy branches and tags and can force-update the
+destination; the reviewed API exposes no main-only filter. Store the scoped
+GitHub credential through Gitea mirror authorization, outside source and logs.
+Do not create a mirror merely to leave its timer off: creation itself can trigger
+publication.
 
 Review the files and history included by the selected scope, including future
 branches/tags, for identities, credentials and diagnostic artifacts. Keep
-credentials outside Git and Nix outputs. Use the infrastructure repository's
-Den/Terranix/OpenTofu conventions rather than adding a separate synchronization
-engine or another CI compilation job.
+credentials outside Git and Nix outputs. Use Gitea's native mechanism rather
+than adding a separate synchronization engine or another CI compilation job.
 
 A source mirror alone would not import public PRs, expose private CI to public
 branches, report checks on GitHub, or synchronize PR discussion and closure.
