@@ -12,7 +12,8 @@ tool. Its declarative setup is not a defect, and there is no established
 requirement here to maintain a second Gradle/NDK/Rust pipeline.
 
 F-Droid supports custom build commands and an explicit APK output, so invoking
-`nix build .#apk` is a candidate integration. SimpleX Chat provides a confirmed Nix/flake build precedent, and F-Droid policy
+`nix build .#apk` is a candidate integration. SimpleX Chat provides a confirmed
+Nix/flake build precedent, and F-Droid policy
 explicitly permits some Nix-cache binaries. Zeroute-specific compatibility remains
 untested: review bootstrap, scanning, substitution and resources before a trial. See the [flake-based recipe investigation](f-droid-flake-recipe.md).
 Do not upload the development-signed APK or claim that a Nix cache hit proves
@@ -31,7 +32,7 @@ F-Droid source-build or reproducibility requirements.
 | Licensing | MIT application; separately MPL core; upstream nonfree/controller components disabled | Complete embedded third-party/runtime notices and corresponding-source information |
 | Signing | Existing phones use a development certificate | Decide F-Droid signing or developer signing/reproducibility, and a deliberate test-install migration |
 | Listing | README and public contribution route exist | Add descriptions, suitable icon, sanitized screenshots and release notes; no listing metadata currently exists |
-| Submission | No F-Droid recipe or submission exists | Verify recipe, prepare metadata, then request separate submission approval |
+| Submission | No F-Droid-accepted recipe or submission exists | Verify recipe, prepare metadata, then request separate submission approval |
 
 F-Droid's inclusion policy normally asks for three months of active development,
 with exceptions including proven users. Zeroute is younger. Describe the existing
@@ -61,8 +62,9 @@ sources fetched into the Nix store must still be reviewable; application/library
 binary substitution cannot silently stand in for source compilation. Exact
 Nix/tool versions and policies need to be recorded for a successful trial.
 
-No separate native build helper, alternative toolchain pipeline or accepted
-F-Droid recipe has been implemented. If maintainers identify a concrete blocker
+A thin bootstrap/invocation adapter is prepared under `packaging/fdroid/`; no
+alternative native build pipeline or accepted F-Droid recipe is implemented.
+If maintainers identify a concrete blocker
 to the flake approach, discuss that evidence and alternatives before choosing a
 second build implementation.
 
