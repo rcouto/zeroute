@@ -100,3 +100,9 @@ script was downloaded to private preparation storage and hash-pinned; the
 installer was not executed. Shell syntax, ShellCheck and YAML parsing passed;
 full fdroiddata lint, source/binary scanners, disposable bootstrap and app build
 remain unproven. No app compilation or phone operation was run during preparation.
+
+The selected remote builder's matching official-cache dry-run subsequently
+completed with no additional actions reported for the existing APK. This is warm
+package availability, not fresh F-Droid bootstrap or source-compilation evidence.
+Do not replace the preparation workstation's larger estimate with a zero-cost
+claim for a disposable builder.
