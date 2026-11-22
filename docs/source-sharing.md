@@ -45,6 +45,10 @@ contribution workflow remains the policy until a replacement is documented.
 
 ## APK distribution, deferred
 
+See the [F-Droid readiness assessment](f-droid-readiness.md) for the proposed
+source-build trial, signing alternatives and release prerequisites. No submission
+or release automation has been enabled.
+
 Before public APK distribution, decide stable versioning/application identity,
 signing-key custody and recovery, upgrade compatibility, the update channel,
 complete third-party notices and corresponding-source information, and release
