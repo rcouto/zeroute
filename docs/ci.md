@@ -175,3 +175,12 @@ The final native rebuild reported 46s for C++, 24.51s for Rust, 2m16s for APK
 assembly and 27s for lint. These are phase timings with cached toolchains, not a
 cold end-to-end benchmark. The complete scanner duration was not measured.
 All pre-commit hooks passed. No phone installation, signing or submission occurred.
+
+The first Buildbot run with this check passed in 13m06s: flake evaluation took
+12m35s and the build-dispatch phase 29s. Native/APK outputs were already present
+from direct validation; this was not a cold toolchain-download benchmark. The
+next source-only PR run took 2m27s, and the merged-main run took 11s. Successful
+scanner-builder runs took 8s and 11s including job overhead. These observations
+do not establish a general evaluator-cache guarantee; avoid treating scanner
+execution time as the total PR-CI latency. No IETS workaround or service change
+was required for these runs.
