@@ -57,8 +57,8 @@ Bootstrap is refused in dry-run mode if Nix is missing: a Nix dry-run cannot pri
 the prerequisite installer. The inspected x86_64 Linux bootstrap archive declares
 27,377,140 bytes (about 26.1 MiB); this excludes unpacked store dependencies and
 the Android build closure. Recheck its resource requirements before executing.
-The bootstrap itself and disposable-builder namespace/user behavior remain
-untested; syntax checks and a downloaded installer hash are narrower evidence.
+The subsequent disposable Debian trial below exercised bootstrap and the APK
+build. It remains separate from an official F-Droid build-server run.
 
 ## Cache and source evidence
 
@@ -75,10 +75,9 @@ F-Droid validation requirements; the wrapper does not ignore scanners or claim a
 successful F-Droid build just because ordinary Nix builds work. Nix-on-NixOS
 execution also does not prove a fresh F-Droid builder can bootstrap and run it.
 
-No SDK, emulator, clean build or new CI matrix is installed or enabled merely by
-adding these files. Packaging files are outside the existing Rust/APK source
-filesets, so this adapter does not change their derivations. Existing PR checks
-still run normally; there is no added CI job.
+Packaging files are outside the existing Rust/APK source filesets, so metadata
+edits reuse those outputs. The adapter itself adds no alternate build pipeline.
+The separate F-Droid flake check described below adds one CI scanner job.
 
 See [the confirmed SimpleX precedent and recipe investigation](../../docs/f-droid-flake-recipe.md)
 and [release/signing readiness](../../docs/f-droid-readiness.md). A differently
@@ -125,3 +124,21 @@ The corrected resumed trial passed APK assembly, lint and packaging checks in
 trial was interrupted and resumed across the fix; it is not an uninterrupted
 cold-build benchmark. This proves the adapter can build in that isolated Debian
 environment; it does not establish full F-Droid acceptance.
+
+## Flake scanner check
+
+Run `nix build .#checks.x86_64-linux.fdroid` for official metadata lint, current
+project/native source scanning and scanning of the existing unsigned ARM64 APK.
+The native compiler and scanner use the same filtered ZeroTier input, excluding
+unused nonfree/controller sources, JavaScript rule compiler and prebuilt server
+archives. The scanner does
+not use blanket ignores. Reports are retained in the check output.
+
+The candidate build stays disabled: lint does not validate its placeholder
+release reference. A scratch metadata copy without builds enables the scanner's
+current-source mode without VCS cloning or recipe execution. Rules come from the
+locked fdroidserver's bundled SUSS snapshot; offline checks do not establish live
+signature freshness or inclusion approval. Downloaded toolchains and Cargo vendor
+sources are not covered by this project/native source scan. See
+[CI scope/costs](../../docs/ci.md) and
+[remaining license/notice gates](../../docs/third-party-licenses.md).

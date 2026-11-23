@@ -1,8 +1,11 @@
 # F-Droid readiness and proposed submission plan
 
 Assessment date: 2026-11-22. Status: preparation proposal, not a submission or a
-release. No signing key, package ID, version, dependency, CI job or build target
-is changed by this assessment. The source baseline is main `b1e6009`.
+release. The initial assessment was source-only at `b1e6009`; the subsequent
+Nix/Android compatibility trial passed at the `2ed929b` baseline after removing
+mutable lint feeds. See the packaging README for measured evidence and
+[the dependency/license review](third-party-licenses.md) for current notice gaps.
+Signing, release and submission remain unapproved.
 
 ## Recommendation
 
@@ -14,8 +17,8 @@ requirement here to maintain a second Gradle/NDK/Rust pipeline.
 F-Droid supports custom build commands and an explicit APK output, so invoking
 `nix build .#apk` is a candidate integration. SimpleX Chat provides a confirmed
 Nix/flake build precedent, and F-Droid policy
-explicitly permits some Nix-cache binaries. Zeroute-specific compatibility remains
-untested: review bootstrap, scanning, substitution and resources before a trial. See the [flake-based recipe investigation](f-droid-flake-recipe.md).
+explicitly permits some Nix-cache binaries. Zeroute’s isolated Debian bootstrap and real-backend APK/lint trial passed;
+full F-Droid metadata/source/binary acceptance remains separate. See the [flake-based recipe investigation](f-droid-flake-recipe.md).
 Do not upload the development-signed APK or claim that a Nix cache hit proves
 F-Droid source-build or reproducibility requirements.
 
@@ -31,7 +34,7 @@ F-Droid source-build or reproducibility requirements.
 | Native source | Pinned ZeroTier core plus project-owned Rust/JNI adapter | Build the real core from source in the distribution environment, not an imported prebuilt `.so` |
 | Licensing | MIT application; separately MPL core; upstream nonfree/controller components disabled | Complete embedded third-party/runtime notices and corresponding-source information |
 | Signing | Existing phones use a development certificate | Decide F-Droid signing or developer signing/reproducibility, and a deliberate test-install migration |
-| Listing | README and public contribution route exist | Add descriptions, suitable icon, sanitized screenshots and release notes; no listing metadata currently exists |
+| Listing | README and public contribution route exist | Candidate description/summary exist; finalize icon, sanitized screenshots and release notes |
 | Submission | No F-Droid-accepted recipe or submission exists | Verify recipe, prepare metadata, then request separate submission approval |
 
 F-Droid's inclusion policy normally asks for three months of active development,
@@ -70,20 +73,18 @@ second build implementation.
 
 ## Licensing review boundary
 
-The lock contains 29 registry package entries. The 26 cached manifests inspected
-here declare MIT, Apache-2.0 alternatives, Unlicense alternatives and a
-Unicode-3.0 conjunction. Manifests for `winapi-util`, `windows-link` and
-`windows-sys` were not in the source cache; resolve their exact declarations and
-target inclusion before calling the inventory complete. A manifest declaration
-is evidence for review, not a replacement for collecting required notices.
+All 29 registry archives now match their `Cargo.lock` checksums. Android
+resolution has 11 runtime candidates and 15 build/procedural-macro crates; the
+three Windows-only entries are excluded. Their exact declarations and the JNI
+license-file provenance are recorded in [the license inventory](third-party-licenses.md).
 
-The pinned ZeroTier revision is
-`899352e38405968516bb12a770f0ac02f6058fa8`. Its upstream license distinguishes MPL
-code, external components and nonfree components. The recipe requests only core
-and excludes nonfree/controller objects. The current APK includes the MPL text
-but not a demonstrated complete inventory of Rust, upstream embedded code,
-Android/C++ runtime and redistributed assets. Complete that inventory and provide
-the exact corresponding-source location before distributing executables.
+The actual core target includes MIT Prometheus headers and public-domain crypto
+notices in addition to MPL-covered code. Rust standard-library and static NDK
+runtime notices are separate from the application Cargo graph. The current APK
+only stages the MPL resource: complete, accessible notices and covered-source
+links remain a distribution gate. Upstream archives also contain unused prebuilt
+server libraries; a meaningful scanner check must cover the same clean sources
+that the compiler uses, rather than hide those files with blanket ignores.
 
 Nix's `allowUnfree`/SDK-license acceptance is a build configuration choice, not by
 itself proof of a proprietary application dependency. F-Droid has documented
@@ -130,10 +131,11 @@ nor key operations are performed by this assessment.
    submission. Submit a reviewed metadata merge request or packaging request;
    maintainers decide inclusion. No promise of acceptance or review timing.
 
-Assessment work is source/documentation inspection only. The trial's cold time
-and downloads are unknown; expect native C++/Rust compilation and toolchain
-fetches, potentially minutes to tens of minutes (an estimate, not a measurement).
-The existing Nix APK timings are not measurements of this different environment.
+The isolated Nix bootstrap/APK trial passed after the mutable-feed fix; its
+measured phases and interrupted/resumed cold-download history are recorded in
+[CI documentation](ci.md). It is not an uninterrupted cold-build benchmark.
+The full flake scanner check subsequently passed on 2026-11-23; its scope and
+results are recorded in the CI documentation. Official inclusion remains separate.
 Do not treat a cached Nix APK as proof that the new recipe is cheap or compatible.
 Keep compilation bounded and use the already selected remote builder; no local
 system/package build, emulator download or additional ABI is proposed.
@@ -158,4 +160,6 @@ keep publishing source until distribution work is prioritized.
 
 The source/build findings above come from the named repository files. Candidate
 recipes, signing recommendations, duration estimates and policy suitability are
-proposals or inferences; no F-Droid build, scanner run or acceptance is claimed.
+proposals or inferences. The isolated recipe-adapter build is not an official
+F-Droid build-server run or acceptance. Scanner evidence is recorded separately
+in [CI documentation](ci.md).

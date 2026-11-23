@@ -1,20 +1,35 @@
 Categories:
   - Connectivity
 License: MPL-2.0
+AutoName: Zeroute
+Summary: Private-network VPN with connection diagnostics
+Description: |-
+  Zeroute is an experimental Android client for private ZeroTier networks.
+  It provides private IPv4/IPv6 routes, optional managed DNS, connection-stage
+  diagnostics and a Quick Settings connect/disconnect tile.
+
+  Android 8 or later and an ARM64 device are required. Membership requires
+  authorization by the network administrator. Internet traffic follows your
+  normal connection; Zeroute is a private-network VPN.
+
+  Peer discovery uses the upstream default root infrastructure. Custom planet
+  and moon configuration is not exposed in this version. The client is
+  maintained for personal use, with no support or compatibility commitment.
 SourceCode: https://github.com/rcouto/zeroute
 RepoType: git
 Repo: https://github.com/rcouto/zeroute.git
 MaintainerNotes: |-
   Candidate only; not submitted. App-owned source is MIT, with a bundled MPL-2.0
   core and other FLOSS dependencies. Complete the binary notice/license review
-  before enabling. All app compilation is owned by the locked Nix flake.
+  before enabling; see docs/third-party-licenses.md. All app compilation is
+  owned by the locked Nix flake.
   The shell adapter only bootstraps Nix and invokes that existing build.
   Use the standard disposable F-Droid build user; never run sudo setup on an
   ordinary workstation. No Gradle or NDK version is independently pinned here.
 Builds:
   - versionName: 0.1.0
     versionCode: 1
-    disable: 'Preparation only: release tag, notices, signing and F-Droid trial pending'
+    disable: 'Preparation only: release tag, complete APK notices, signing and F-Droid review pending'
     commit: RELEASE_TAG_REQUIRED
     sudo:
       - apt-get update

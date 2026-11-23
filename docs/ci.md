@@ -11,7 +11,8 @@ CI approval. See [contribution guidance](../CONTRIBUTING.md).
 
 The agreed matrix uses one x86_64-linux builder for source hygiene/pre-commit,
 host Rust build/tests and the ARM64 unsigned APK with Android lint and packaging
-checks. Core integration adds upstream C++ compilation to the existing ARM64 job,
+checks, plus one F-Droid metadata/source/APK scanner check. The scanner consumes
+that same APK rather than building another one. Core integration adds upstream C++ compilation to the existing ARM64 job,
 as approved by the owner. There are no extra ABIs, emulator jobs, signing jobs,
 deployment jobs or publishing jobs.
 
@@ -135,3 +136,42 @@ entry point. The corrected resumed segment took 25m 17s including remaining
 cold downloads. The earlier segments failed or were interrupted before the fix;
 this is not an uninterrupted successful cold-build benchmark. No host store or
 private binary cache was shared with the trial.
+
+## F-Droid review check
+
+`nix build .#checks.x86_64-linux.fdroid` runs the locked nixpkgs `fdroidserver`:
+metadata lint, source scanning and unsigned ARM64 APK scanning. It is one added
+Buildbot check. Reports are retained as `metadata.log`, `source.json`, `apk.log`
+and `scope.txt` in the check output. A scanner error fails the check.
+
+The actual disabled candidate is linted first. A scratch copy without `Builds`
+then selects the official scanner's current-source mode, avoiding VCS cloning or
+recipe execution. It scans the tracked project plus the exact cleaned ZeroTier
+source used by the compiler. The native source filter removes the unused nonfree
+controller, unused JavaScript rule compiler (which has no npm lockfile), and
+bundled server `.a` files, without blanket scan ignores.
+The local review repository declares the candidate's Connectivity category;
+F-Droid's final category and Anti-Feature decisions remain separate.
+
+An empty disposable home/cache and `refresh_scanner: false` select the packaged
+SUSS rule snapshot. There is no live rule refresh in this sandboxed check.
+Snapshot freshness, downloaded dependency/toolchain source, licensing obligations,
+release references and F-Droid inclusion are not proven by a passing scan.
+Recheck current scanner rules before submission. See
+[the license inventory](third-party-licenses.md) for APK notice gaps.
+
+The approved scanner closure plan was 70 MiB downloaded / 236.5 MiB unpacked
+locally, all substitutions; remote cache savings were unknown. Initial native
+source cleanup invalidates C++/Rust/APK outputs once: prior measured warm phases
+totaled 3m16s, not a new end-to-end timing. Scanner time remains unmeasured.
+Metadata-only edits reuse native/APK outputs; source, APK, tool/rule and lock
+changes invalidate the relevant check. Garbage collection can remove caches.
+
+On 2026-11-23, the full check passed on the selected remote builder for source
+commit `fd04852`: official metadata lint, project/native source scan and unsigned
+APK scan completed successfully. Clean source-scan JSON was `{}`; the earlier
+unlocked rule-compiler manifest correctly failed the same check before cleanup.
+The final native rebuild reported 46s for C++, 24.51s for Rust, 2m16s for APK
+assembly and 27s for lint. These are phase timings with cached toolchains, not a
+cold end-to-end benchmark. The complete scanner duration was not measured.
+All pre-commit hooks passed. No phone installation, signing or submission occurred.
