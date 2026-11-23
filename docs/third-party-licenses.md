@@ -126,6 +126,14 @@ separate full compiler `COPYRIGHT.html` is not a precise APK component list.
 Android's shared `libc.so` is required dynamically rather than copied into the
 APK as a static archive.
 
+## Preserved notice sources
+
+The [audited source collection](../third-party/notices/README.md) preserves 51
+crate license files and seven native notice/boundary files, with source URLs,
+archive checksums and original/stored file hashes. It also records receipt hashes
+for the inspected Rust/NDK distribution notices. This is preparation material
+outside APK inputs; it does not claim an already shipped runtime notice bundle.
+
 ## Distribution gates
 
 The current build only stages the MPL resource. Before distributing an APK,
