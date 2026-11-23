@@ -127,3 +127,11 @@ recording-only feeds if lint requested them during the online refresh:
 Do not merely refresh their hashes: the next upstream update would break a cold
 build again. Retain all versioned Maven artifacts needed by assembly and lint,
 and validate the resulting inventory with the ordinary sandboxed APK build.
+
+The corrected inventory passed in the isolated Debian trial: ZeroTier core
+compiled in 51 seconds, Rust in 33 seconds, APK assembly in 1m 28s and lint in
+24 seconds. Packaging checks verified AArch64, shared Android libc and the JNI
+entry point. The corrected resumed segment took 25m 17s including remaining
+cold downloads. The earlier segments failed or were interrupted before the fix;
+this is not an uninterrupted successful cold-build benchmark. No host store or
+private binary cache was shared with the trial.

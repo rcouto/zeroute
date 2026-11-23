@@ -120,5 +120,8 @@ The build failed on a changed Google Play SDK advisory snapshot recorded in the
 Gradle inventory. This exposed a reproducibility defect that warm caches hid.
 The inventory now excludes that feed and two mutable Maven version indexes;
 normal offline lint remains enabled. See [inventory refresh guidance](../../docs/ci.md#keep-lint-advisory-feeds-out-of-dependency-locking).
-The corrected APK trial result remains pending; bootstrap success alone does not
-establish APK or F-Droid acceptance.
+The corrected resumed trial passed APK assembly, lint and packaging checks in
+25m 17s, including remaining downloads. Assembly took 1m 28s and lint 24s. The
+trial was interrupted and resumed across the fix; it is not an uninterrupted
+cold-build benchmark. This proves the adapter can build in that isolated Debian
+environment; it does not establish full F-Droid acceptance.
