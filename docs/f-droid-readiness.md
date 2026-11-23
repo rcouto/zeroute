@@ -134,7 +134,8 @@ nor key operations are performed by this assessment.
 The isolated Nix bootstrap/APK trial passed after the mutable-feed fix; its
 measured phases and interrupted/resumed cold-download history are recorded in
 [CI documentation](ci.md). It is not an uninterrupted cold-build benchmark.
-The new flake scanner check remains a separate validation step.
+The full flake scanner check subsequently passed on 2026-11-23; its scope and
+results are recorded in the CI documentation. Official inclusion remains separate.
 Do not treat a cached Nix APK as proof that the new recipe is cheap or compatible.
 Keep compilation bounded and use the already selected remote builder; no local
 system/package build, emulator download or additional ABI is proposed.

@@ -166,3 +166,12 @@ source cleanup invalidates C++/Rust/APK outputs once: prior measured warm phases
 totaled 3m16s, not a new end-to-end timing. Scanner time remains unmeasured.
 Metadata-only edits reuse native/APK outputs; source, APK, tool/rule and lock
 changes invalidate the relevant check. Garbage collection can remove caches.
+
+On 2026-11-23, the full check passed on the selected remote builder for source
+commit `fd04852`: official metadata lint, project/native source scan and unsigned
+APK scan completed successfully. Clean source-scan JSON was `{}`; the earlier
+unlocked rule-compiler manifest correctly failed the same check before cleanup.
+The final native rebuild reported 46s for C++, 24.51s for Rust, 2m16s for APK
+assembly and 27s for lint. These are phase timings with cached toolchains, not a
+cold end-to-end benchmark. The complete scanner duration was not measured.
+All pre-commit hooks passed. No phone installation, signing or submission occurred.
