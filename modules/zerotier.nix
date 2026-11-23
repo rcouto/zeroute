@@ -6,7 +6,20 @@
       packages.zerotier-core-android = zeroute.androidPkgs.stdenv.mkDerivation {
         pname = "zerotier-core-android";
         version = "unstable-${inputs.zerotier-core.shortRev}";
-        src = inputs.zerotier-core;
+        # Scanner and compiler share this boundary; core uses no server archives.
+        src = lib.cleanSourceWith {
+          src = inputs.zerotier-core;
+          filter =
+            path: type:
+            !(
+              type == "directory"
+              && builtins.elem (baseNameOf path) [
+                "nonfree"
+                "rule-compiler"
+              ]
+            )
+            && !(type == "regular" && lib.hasSuffix ".a" path);
+        };
         strictDeps = true;
         dontConfigure = true;
         enableParallelBuilding = true;
