@@ -1,5 +1,0 @@
-/*
-20080912
-D. J. Bernstein
-Public domain.
-*/

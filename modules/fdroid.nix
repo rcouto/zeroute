@@ -7,6 +7,15 @@
       zeroute,
       ...
     }:
+    let
+      scanTools =
+        builtins.head
+          (pkgs.androidenv.composeAndroidPackages {
+            toolsVersion = null;
+            platformVersions = [ ];
+            buildToolsVersions = [ zeroute.versions.buildTools ];
+          }).build-tools;
+    in
     {
       checks.fdroid =
         pkgs.runCommand "zeroute-fdroid-review"
@@ -15,16 +24,21 @@
               pkgs.fdroidserver
               (pkgs.python3.withPackages (python: [ python.pyyaml ]))
             ];
+            noticeBundle = config.packages.notices;
             projectSource = self;
             coreSource = config.packages.zerotier-core-android.src;
             apk = "${config.packages.apk}/zeroute-arm64-unsigned.apk";
-            sdk = "${zeroute.sdk.androidsdk}/libexec/android-sdk";
+            # Scanning needs dexdump from the existing build-tools output, not
+            # platforms, sdkmanager or the legacy SDK tools/extra JDK closure.
+            sdk = "${scanTools}/libexec/android-sdk";
           }
           ''
             set -euo pipefail
+            test -s "$noticeBundle/index.html"
             export HOME="$TMPDIR/home"
             export XDG_CACHE_HOME="$HOME/.cache"
             mkdir -p "$HOME" "$out" metadata config build/org.rcouto.zeroute
+            cp "$noticeBundle/manifest.json" "$out/notices.json"
             cat > config.yml <<EOF
             sdk_path: $sdk
             scanner_signature_sources: [suss]
