@@ -1,0 +1,50 @@
+[
+  {
+    "name": "jni",
+    "version": "0.22.4",
+    "repository": "jni-rs/jni-rs",
+    "revision": "5ae9458a4ec44c5318f37ddc7569c1d4ae8a69e7",
+    "files": [
+      {
+        "path": "LICENSE-MIT",
+        "hash": "sha256-/qHVvz3XFgXOXX0v9pXBg36RTHcZXlI6hrU5FxZHeWA="
+      },
+      {
+        "path": "LICENSE-APACHE",
+        "hash": "sha256-pg7qgXUUUxZo1+AHZXMUSf4U0FnTJJ4LyTs23kX3WfI="
+      }
+    ]
+  },
+  {
+    "name": "jni-macros",
+    "version": "0.22.4",
+    "repository": "jni-rs/jni-rs",
+    "revision": "33045a124105c939d1e2cbdcb5a39e5d868ffa03",
+    "files": [
+      {
+        "path": "LICENSE-MIT",
+        "hash": "sha256-/qHVvz3XFgXOXX0v9pXBg36RTHcZXlI6hrU5FxZHeWA="
+      },
+      {
+        "path": "LICENSE-APACHE",
+        "hash": "sha256-pg7qgXUUUxZo1+AHZXMUSf4U0FnTJJ4LyTs23kX3WfI="
+      }
+    ]
+  },
+  {
+    "name": "jni-sys-macros",
+    "version": "0.4.1",
+    "repository": "jni-rs/jni-sys",
+    "revision": "64d77b7a5f119d7b55b4e2c169a4668067ff59e6",
+    "files": [
+      {
+        "path": "LICENSE-MIT",
+        "hash": "sha256-HYW9dUsEzuyT6Y6JDt0fo8aiLoG8syE1gGvuzO+lHNE="
+      },
+      {
+        "path": "LICENSE-APACHE",
+        "hash": "sha256-xllut76FgcGL5zbIRvuRc7aezPbvlMUTWJPsVr2Sugg="
+      }
+    ]
+  }
+]

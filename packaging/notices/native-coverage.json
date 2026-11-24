@@ -1,0 +1,13 @@
+{
+  "scope": "Audited core-only native notice boundary; source revision or build-flag changes require review of embedded third-party code.",
+  "revision": "899352e38405968516bb12a770f0ac02f6058fa8",
+  "make_flags": [
+    "-f",
+    "make-linux.mk",
+    "ZT_EXTOSDEP=1",
+    "ZT_SSO_SUPPORTED=0",
+    "ZT_CONTROLLER=0",
+    "ZT_NONFREE=0",
+    "core"
+  ]
+}

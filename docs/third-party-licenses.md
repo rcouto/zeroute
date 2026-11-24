@@ -126,6 +126,21 @@ separate full compiler `COPYRIGHT.html` is not a precise APK component list.
 Android's shared `libc.so` is required dynamically rather than copied into the
 APK as a static archive.
 
+## Generated notice sources
+
+The [notice-source generator](../packaging/notices/README.md) replaces committed
+copies with a standalone Nix artifact. Standard cargo-about consumes the existing
+Cargo vendor closure; only hash-pinned provenance exceptions for missing JNI
+texts remain in Git. The native compiler's source input and selected Rust/NDK
+distributions supply their own notice material. Crate coverage, original JNI
+attribution and runtime archive identities are checked during generation.
+
+The artifact stays outside APK inputs. Runtime distribution notices are broader
+than the exact linked components; their preservation does not establish an
+APK-ready notice selection. Android build-declaration receipts require a new
+coverage review if runtime Maven/Kotlin dependencies are introduced. Build tools
+and Kotlin Gradle scripts are not automatically shipped application libraries.
+
 ## Distribution gates
 
 The current build only stages the MPL resource. Before distributing an APK,

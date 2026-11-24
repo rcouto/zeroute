@@ -1,0 +1,5 @@
+# Standard cargo-about selection; retain Android build/macro attributions too.
+accepted = ["MIT", "Apache-2.0", "Unicode-3.0", "Unlicense"]
+targets = ["aarch64-linux-android"]
+ignore-dev-dependencies = true
+ignore-build-dependencies = false

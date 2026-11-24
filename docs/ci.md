@@ -175,3 +175,54 @@ The final native rebuild reported 46s for C++, 24.51s for Rust, 2m16s for APK
 assembly and 27s for lint. These are phase timings with cached toolchains, not a
 cold end-to-end benchmark. The complete scanner duration was not measured.
 All pre-commit hooks passed. No phone installation, signing or submission occurred.
+
+The first Buildbot run with this check passed in 13m06s: flake evaluation took
+12m35s and the build-dispatch phase 29s. Native/APK outputs were already present
+from direct validation; this was not a cold toolchain-download benchmark. The
+next source-only PR run took 2m27s, and the merged-main run took 11s. Successful
+scanner-builder runs took 8s and 11s including job overhead. These observations
+do not establish a general evaluator-cache guarantee; avoid treating scanner
+execution time as the total PR-CI latency. No IETS workaround or service change
+was required for these runs.
+
+## Generated notice-source review
+
+`packages.notices` reuses the existing Cargo vendor closure, native source and
+selected Rust/NDK distributions. Standard locked-nixpkgs cargo-about gathers
+Android-target crate notices offline; a small assembler preserves native/runtime
+notice material and records coverage. The existing `fdroid` check depends on it
+and retains `notices.json`; there is no new job or APK/native-input change.
+
+The approved cargo-about dry-run was 5.8 MiB downloaded / 14.4 MiB unpacked,
+with six pinned missing-license fetches totaling about 36 KiB. Rust/NDK notice
+files were rechecked as present on the selected builder before implementation.
+Generator timing is not yet measured; seconds are expected. Prior scanner jobs
+took 8–11s, while evaluator latency is separate and can take minutes. These are
+cache-dependent observations, not a zero-download guarantee after garbage
+collection. A Python-only collector was considered as a lower-download
+alternative; the standard crate-license tool avoids maintaining that logic here.
+
+The artifact rebuilds for affected source/runtime pins, generator/configuration
+or exception changes. Native compilation remains cached when only notice inputs
+change. The small provenance/coverage tests execute within this derivation, so
+they add no separate CI job. Complete in-APK notice packaging remains separate.
+
+The notice artifact subsequently built successfully on the selected builder,
+including six attribution/provenance/coverage regression tests. It reports 26
+Android-target crates (11 runtime, 15 build/macro), preserves 11 native/runtime
+notice documents and identifies the three C++ archives selected by the compiler.
+No APK/native application inputs changed.
+
+Scanner SDK inputs now select only pinned build tools through supported nixpkgs
+composition (`toolsVersion = null`, no platforms). The scanner needs dexdump,
+not sdkmanager, platform images or legacy SDK tools. This reduces restoration
+work without overriding/patching upstream packages or changing APK compilation.
+After an interrupted full-check restoration, the measured remaining scanner
+plan was 127.5 MiB downloaded / 182.8 MiB unpacked, plus a host compatibility
+library build and SDK binary packaging. This is a remaining-cache-state plan,
+not a total cold closure or the notice generator's own cost. After the owner
+approved restoration, the full revised F-Droid check passed on 2026-11-24:
+metadata, project/native source and unchanged unsigned ARM64 APK scanning, plus
+the generated notice artifact and all six regression tests. The minimal SDK
+input was sufficient; no application/native rebuild was needed. Final pre-commit
+hooks passed. APK notice integration and release approval remain separate.

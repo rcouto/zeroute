@@ -16,3 +16,5 @@
 *.aab
 .env
 .env.*
+
+__pycache__/
