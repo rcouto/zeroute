@@ -7,6 +7,12 @@ sanitized validation results on the public PR, merge accepted changes privately,
 and publish the resulting commits to GitHub. A GitHub PR with no checks is not
 CI approval. See [contribution guidance](../CONTRIBUTING.md).
 
+## Scheduled flake updates
+
+Buildbot schedules a daily flake update at 14:30 in the controller time zone.
+The shared publisher opens a private Gitea PR when the lockfile changes. The
+existing CI matrix applies to that PR. GitHub publication remains a separate step.
+
 ## Build scope and caching
 
 The agreed matrix uses one x86_64-linux builder for source hygiene/pre-commit,
