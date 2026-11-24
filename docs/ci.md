@@ -220,5 +220,9 @@ work without overriding/patching upstream packages or changing APK compilation.
 After an interrupted full-check restoration, the measured remaining scanner
 plan was 127.5 MiB downloaded / 182.8 MiB unpacked, plus a host compatibility
 library build and SDK binary packaging. This is a remaining-cache-state plan,
-not a total cold closure or the notice generator's own cost. Full revised scanner
-validation is pending that separately discussed restoration.
+not a total cold closure or the notice generator's own cost. After the owner
+approved restoration, the full revised F-Droid check passed on 2026-11-24:
+metadata, project/native source and unchanged unsigned ARM64 APK scanning, plus
+the generated notice artifact and all six regression tests. The minimal SDK
+input was sufficient; no application/native rebuild was needed. Final pre-commit
+hooks passed. APK notice integration and release approval remain separate.
