@@ -23,7 +23,9 @@
     <string name="control_plane_status">Root connectivity (last core report): %1$s</string>
     <string name="start_engine">Connect VPN</string>
     <string name="stop_engine">Disconnect VPN</string>
-    <string name="core_license">ZeroTier core license</string>
+    <string name="core_license">Open source notices</string>
+    <string name="notices_index">Contents</string>
+    <string name="source_link_unavailable">No browser is available to open this source link.</string>
     <string name="vpn_channel">VPN connection</string>
     <string name="add_tile">Add Quick Settings tile</string>
     <string name="tile_help">Open Quick Settings, tap Edit, then add Zeroute.</string>

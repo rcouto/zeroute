@@ -1,13 +1,13 @@
 # Generated notice-source artifact
 
-`nix build .#notices` produces a review artifact from the same pinned inputs used
-by Zeroute. Open its `index.html`; `manifest.json` records component coverage,
-source receipts and selected runtime archive hashes. Nothing is copied into the
-APK by this package. Integration into the existing in-app license view remains
-a separate packaging step. Inspect the selected executor's dry-run first: the
-artifact reads Rust/NDK distribution notices, so garbage collection can make a
-rebuild fetch those large distributions even when an old APK is cached. Prefer
-the selected remote builder where those inputs are already present.
+`nix build .#notices` generates the review index and manifest from pinned build
+inputs. Its `apk/` directory contains the selected notice pages. The Android
+build copies those pages into assets and compares each packaged page with the
+generated file. Use **Open source notices** in the app to read them offline.
+Tapped HTTPS source links open in the device browser.
+
+Inspect the selected executor's dry-run first. Garbage collection can force
+restoration of the Rust, NDK and Android build inputs.
 
 ## Source owners and coverage
 
@@ -30,9 +30,10 @@ the selected remote builder where those inputs are already present.
   select the actual source/build flags. No upstream text copies remain in Git.
 - **Language/native runtimes:** the locked Rust distribution supplies
   `COPYRIGHT-library.html`; the NDK selected by the existing compiler supplies
-  `NOTICE`, `NOTICE.toolchain` and identities of `c++_static`, `c++abi` and
-  `unwind`. These distribution notices include components beyond this APK.
-  Their preservation is review material, not a precise APK bill of materials.
+  `NOTICE`, `NOTICE.toolchain` and archive identities for libc++, libc++abi,
+  libunwind and compiler-rt builtins. The APK includes targeted LLVM license
+  texts pinned to the audited NDK revision. The broader NDK documents remain
+  available in the review output.
 - **Android/JVM:** the current adapter is Java using device framework APIs; it
   declares no runtime Maven/Kotlin libraries. `android-coverage.json` checks the
   relevant build declarations so changes require a new dependency-coverage
@@ -50,11 +51,12 @@ license texts are not hand-maintained repository files.
 
 The existing F-Droid flake check depends on this package and retains its manifest
 as `notices.json`. It selects only the pinned scanner build tools, excluding the
-unused full/legacy SDK closure. No extra CI job, ABI or APK/native rebuild is
-introduced.
+unused full/legacy SDK closure. No extra CI job or ABI is
+introduced. Packaging a changed notice bundle invalidates the APK and scanner
+outputs.
 Tests cover attribution preservation, stale source revisions, changed notice
 texts and omitted dependency coverage. A successful artifact does not establish
-F-Droid acceptance or completion of APK notice packaging.
+F-Droid acceptance or prove that the viewer works on a physical phone.
 
 Changes to crate/native pins, runtime distributions, generator configuration or
 exception pins invalidate the relevant artifact. Android declaration changes

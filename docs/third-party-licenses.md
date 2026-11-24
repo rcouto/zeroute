@@ -130,27 +130,22 @@ APK as a static archive.
 
 The [notice-source generator](../packaging/notices/README.md) replaces committed
 copies with a standalone Nix artifact. Standard cargo-about consumes the existing
-Cargo vendor closure; only hash-pinned provenance exceptions for missing JNI
-texts remain in Git. The native compiler's source input and selected Rust/NDK
+Cargo vendor closure; Git holds hash-pinned references for missing JNI
+texts and targeted LLVM notices. The native compiler's source input and selected Rust/NDK
 distributions supply their own notice material. Crate coverage, original JNI
 attribution and runtime archive identities are checked during generation.
 
-The artifact stays outside APK inputs. Runtime distribution notices are broader
-than the exact linked components; their preservation does not establish an
-APK-ready notice selection. Android build-declaration receipts require a new
-coverage review if runtime Maven/Kotlin dependencies are introduced. Build tools
-and Kotlin Gradle scripts are not automatically shipped application libraries.
+The APK consumes the selected `apk/` pages. The broader NDK distribution
+documents stay in the review output. Android build-declaration receipts require
+a new coverage review if runtime Maven or Kotlin dependencies are introduced.
 
 ## Distribution gates
 
-See [the ARM64 APK notice selection](apk-notice-selection.md) for the audited
-component list and the additions needed before packaging.
-
-The current build only stages the MPL resource. Before distributing an APK,
-provide the application MIT notice, applicable crate notices, Prometheus notice,
-Rust standard-library exceptions and NDK runtime notices, with exact covered
-source links. Add a user-accessible notices/source view and verify its packaged
-contents. This audit does not claim those resources are already shipped.
+The app exposes the selected material through **Open source notices**. The APK
+build compares included assets with generator output. The release still needs
+a phone check and a link to the exact published Zeroute source from the release
+record. The app already links the exact covered ZeroTier source revision.
+See the [ARM64 APK notice selection](apk-notice-selection.md).
 
 Scanner results do not prove license compliance. Metadata remains disabled until
 complete APK notices, version/tag ownership, signing and submission review are

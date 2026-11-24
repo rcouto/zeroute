@@ -15,6 +15,15 @@
           builtins.length ndkDependencies == 1
         ) "Review the pinned Android compiler's NDK dependency interface";
         builtins.head ndkDependencies;
+      ndkCoverage = lib.importJSON ../packaging/notices/ndk-coverage.json;
+      ndkLicenses = lib.mapAttrs (
+        component: hash:
+        pkgs.fetchurl {
+          url = "https://android.googlesource.com/toolchain/llvm-project/+/${ndkCoverage.llvm_revision}/${component}/LICENSE.TXT?format=TEXT";
+          name = "${component}-license.base64";
+          inherit hash;
+        }
+      ) ndkCoverage.components;
       exceptions = map (
         exception:
         exception
@@ -47,6 +56,7 @@
             ../packaging/notices/android-coverage.json
             ../packaging/notices/assemble.py
             ../packaging/notices/native-coverage.json
+            ../packaging/notices/ndk-coverage.json
             ../packaging/notices/exceptions.json
             ../packaging/notices/prepare.py
             ../packaging/notices/test_notices.py
@@ -68,6 +78,7 @@
         nativeRevision = inputs.zerotier-core.rev;
         nativeBuildFlags = builtins.toJSON config.packages.zerotier-core-android.makeFlags;
         rustDistribution = zeroute.rustToolchain;
+        ndkLicenseInputs = pkgs.writeText "ndk-license-inputs.json" (builtins.toJSON ndkLicenses);
         ndkRoot = "${ndk}/libexec/android-sdk/ndk-bundle";
         androidCxx = "${zeroute.androidPkgs.stdenv.cc}/bin/${zeroute.androidPkgs.stdenv.cc.targetPrefix}c++";
         dontConfigure = true;
@@ -92,6 +103,7 @@
         installPhase = ''
           runHook preInstall
           test -s "$out/index.html"
+          test -s "$out/apk/index.html"
           test -s "$out/manifest.json"
           runHook postInstall
         '';
