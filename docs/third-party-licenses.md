@@ -143,6 +143,9 @@ and Kotlin Gradle scripts are not automatically shipped application libraries.
 
 ## Distribution gates
 
+See [the ARM64 APK notice selection](apk-notice-selection.md) for the audited
+component list and the additions needed before packaging.
+
 The current build only stages the MPL resource. Before distributing an APK,
 provide the application MIT notice, applicable crate notices, Prometheus notice,
 Rust standard-library exceptions and NDK runtime notices, with exact covered
