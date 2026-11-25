@@ -80,9 +80,9 @@ license-file provenance are recorded in [the license inventory](third-party-lice
 
 The actual core target includes MIT Prometheus headers and public-domain crypto
 notices in addition to MPL-covered code. Rust standard-library and static NDK
-runtime notices are separate from the application Cargo graph. The current APK
-only stages the MPL resource: complete, accessible notices and covered-source
-links remain a distribution gate. Upstream archives also contain unused prebuilt
+runtime notices are separate from the application Cargo graph. The APK build
+packages the selected notice pages and links the covered source. Phone viewer
+verification and release-source publication remain distribution gates. Upstream archives also contain unused prebuilt
 server libraries; a meaningful scanner check must cover the same clean sources
 that the compiler uses, rather than hide those files with blanket ignores.
 

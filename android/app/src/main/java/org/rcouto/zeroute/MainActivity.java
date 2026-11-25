@@ -3,21 +3,25 @@ package org.rcouto.zeroute;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.StatusBarManager;
+import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.drawable.Icon;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
 import android.view.WindowInsets;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
-import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -25,6 +29,7 @@ import java.util.concurrent.Executors;
 public final class MainActivity extends Activity {
   private final ExecutorService worker = Executors.newSingleThreadExecutor();
   private final ConnectionController.Listener listener = this::render;
+  private AlertDialog noticesDialog;
   private boolean loaded;
   private boolean configured;
   private boolean saving;
@@ -278,20 +283,53 @@ public final class MainActivity extends Activity {
   }
 
   private void showLicense() {
-    worker.execute(() -> {
-      try (Scanner scanner =
-          new Scanner(getResources().openRawResource(R.raw.zerotier_core_license), "UTF-8")) {
-        String text = scanner.useDelimiter("\\A").next();
-        runOnUiThread(() -> {
-          if (!isDestroyed())
-            new AlertDialog.Builder(this)
-                .setTitle(R.string.core_license)
-                .setMessage(text)
-                .setPositiveButton(android.R.string.ok, null)
-                .show();
+    String index = "file:///android_asset/notices/index.html";
+    WebView notices = new WebView(this);
+    notices.getSettings().setAllowFileAccess(false);
+    notices.getSettings().setAllowContentAccess(false);
+    notices.getSettings().setBlockNetworkLoads(true);
+    notices.setWebViewClient(
+        new WebViewClient() {
+          @Override
+          public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            Uri uri = request.getUrl();
+            if ("file".equals(uri.getScheme()) && uri.getAuthority() == null) {
+              String path = uri.getPath();
+              return path == null
+                  || !path.startsWith("/android_asset/notices/")
+                  || path.contains("..");
+            }
+            if ("https".equals(uri.getScheme())
+                && request.hasGesture()
+                && request.isForMainFrame()) {
+              try {
+                startActivity(new Intent(Intent.ACTION_VIEW, uri));
+              } catch (ActivityNotFoundException ignored) {
+                setText(R.id.message, getString(R.string.source_link_unavailable));
+              }
+            }
+            return true;
+          }
         });
+    noticesDialog =
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.core_license)
+            .setView(notices)
+            .setPositiveButton(android.R.string.ok, null)
+            .setNeutralButton(R.string.notices_index, null)
+            .create();
+    noticesDialog.setOnDismissListener(dialog -> {
+      if (notices.getParent() instanceof android.view.ViewGroup parent) {
+        parent.removeView(notices);
       }
+      notices.destroy();
+      noticesDialog = null;
     });
+    noticesDialog.show();
+    noticesDialog
+        .getButton(AlertDialog.BUTTON_NEUTRAL)
+        .setOnClickListener(v -> notices.loadUrl(index));
+    notices.loadUrl(index);
   }
 
   @Override
@@ -323,6 +361,7 @@ public final class MainActivity extends Activity {
   @Override
   protected void onDestroy() {
     ConnectionController.unsubscribe(listener);
+    if (noticesDialog != null) noticesDialog.dismiss();
     worker.shutdown();
     super.onDestroy();
   }

@@ -1,0 +1,10 @@
+{
+  "ndk_version": "27.0.12077973",
+  "llvm_revision": "d8003a456d14a3deb8054cdaa529ffbf02d9b262",
+  "components": {
+    "libcxx": "sha256-LfiD7thdSI72Qawi886K+0lVCLb4fDiEevld2/lK6nA=",
+    "libcxxabi": "sha256-jTRW6SoxlV/a6pwyY04uLVq/h+Muhiyij0C5eeaOphI=",
+    "libunwind": "sha256-dKYrj6+7q3VnCVzcpehKkETjGmiha7UggPFSVkMwji0=",
+    "compiler-rt": "sha256-rNi51UKoZJgP5XzkFoss/7hUrZtP4qDGUgJDZEzYWyM="
+  }
+}
