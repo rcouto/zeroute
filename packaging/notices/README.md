@@ -5,6 +5,9 @@ inputs. Its `apk/` directory contains the selected notice pages. The Android
 build copies those pages into assets and compares each packaged page with the
 generated file. Use **Open source notices** in the app to read them offline.
 Tapped HTTPS source links open in the device browser.
+For a phone smoke test, disable Wi-Fi in airplane mode, open both **Embedded
+LZ4** and **ZeroTier MPL 2.0**, and confirm each page shows the license text.
+Use **Contents** to return to the index between pages.
 
 Inspect the selected executor's dry-run first. Garbage collection can force
 restoration of the Rust, NDK and Android build inputs.
