@@ -67,6 +67,8 @@
         doInstallCheck = true;
         installCheckPhase = ''
           runHook preInstallCheck
+          badging=$("${sdkRoot}/build-tools/${zeroute.versions.buildTools}/aapt2" dump badging "$out/zeroute-arm64-unsigned.apk")
+          grep -F "package: name='org.rcouto.zeroute' versionCode='${zeroute.versions.androidVersionCode}' versionName='${zeroute.version}'" <<< "$badging"
           unzip -Z1 "$out/zeroute-arm64-unsigned.apk" | grep -Fx 'lib/arm64-v8a/libzeroute_core.so'
           unzip -p "$out/zeroute-arm64-unsigned.apk" 'lib/arm64-v8a/libzeroute_core.so' > libzeroute_core.so
           readelf -h libzeroute_core.so | grep -E 'Machine: +AArch64'

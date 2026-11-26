@@ -29,7 +29,7 @@ F-Droid source-build or reproducibility requirements.
 | Public source | GitHub main is published; owned code has MIT license | Publish each proposed release commit/tag and its complete source |
 | Application identity | `org.rcouto.zeroute`, Android API 26+, ARM64 only | Keep identity stable unless a separate variant is deliberately chosen; describe architecture limits |
 | Functionality | Owner reports successful use on two phones, app/tile actions and mobile recovery | State experimental limits; no reliability or battery claim from these checks |
-| Release versions | Workspace `0.1.0`; Gradle hardcodes `versionCode = 1` | Define one authoritative, monotonic version code and a readable release version/tag scheme |
+| Release versions | Workspace `0.1.0`; Android catalog code `1` | Apply the [version and tag policy](release-versioning.md) to the exact release candidate |
 | Runtime Java libraries | App Gradle file declares no runtime Maven dependencies | Confirm final source/binary dependency inventory and scanner results |
 | Native source | Pinned ZeroTier core plus project-owned Rust/JNI adapter | Build the real core from source in the distribution environment, not an imported prebuilt `.so` |
 | Licensing | MIT application; separately MPL core; upstream nonfree/controller components disabled | Complete embedded third-party/runtime notices and corresponding-source information |

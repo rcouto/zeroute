@@ -1,9 +1,9 @@
 {
   "scope": "No runtime Maven/Kotlin dependencies declared; Android framework classes are supplied by the device. Re-audit Android dependency coverage when these owners change.",
   "files": {
-    "android/app/build.gradle.kts": "7199a9a04d843ca08a306e8fbc250e517a40785ae05f2662c5e34b6123d424c4",
+    "android/app/build.gradle.kts": "81f6cd876aabcf77cbcbfeaa988ac256961223dfe140ed1668cd5d44c3ec0d17",
     "android/build.gradle.kts": "8ce5660d95ace9901683968718cecfed6e8165dbd853ee67961c00cbcbe2a972",
     "android/settings.gradle.kts": "db5cf429ebc0e3b184b14f368c4b7672ec0579a029df0fac858a1ec4b11e4456",
-    "android/gradle/libs.versions.toml": "e03df156cd02e3237d64d62ca2c850fbf8e8c76e4b693dba287812d468e89152"
+    "android/gradle/libs.versions.toml": "ac3ae02b98fbc9a75d08954619261d839820c1a6fcac2bb71e67e47516db3404"
   }
 }

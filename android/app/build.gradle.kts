@@ -20,7 +20,11 @@ android {
             libs.versions.targetSdk
                 .get()
                 .toInt()
-        versionCode = 1
+        versionCode =
+            libs.versions.androidVersionCode
+                .get()
+                .toInt()
+                .also { require(it > 0) }
         versionName =
             providers
                 .gradleProperty("zerouteVersion")

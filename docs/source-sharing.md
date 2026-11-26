@@ -47,7 +47,8 @@ contribution workflow remains the policy until a replacement is documented.
 
 See the [F-Droid readiness assessment](f-droid-readiness.md) for the proposed
 source-build trial, signing alternatives and release prerequisites. No submission
-or release automation has been enabled.
+or release automation has been enabled. The [release version and tag policy](release-versioning.md)
+defines the public tag and Android update-code checks.
 
 Before public APK distribution, decide stable versioning/application identity,
 signing-key custody and recovery, upgrade compatibility, the update channel,
