@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.view.View;
 import android.view.WindowInsets;
 import android.webkit.WebResourceRequest;
@@ -293,7 +294,7 @@ public final class MainActivity extends Activity {
           @Override
           public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
             Uri uri = request.getUrl();
-            if ("file".equals(uri.getScheme()) && uri.getAuthority() == null) {
+            if ("file".equals(uri.getScheme()) && TextUtils.isEmpty(uri.getEncodedAuthority())) {
               String path = uri.getPath();
               return path == null
                   || !path.startsWith("/android_asset/notices/")
