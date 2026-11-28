@@ -76,4 +76,18 @@
     <string name="open_settings_manually">Open Android Wi-Fi settings to sign in.</string>
     <string name="scope_private">Private routes only. Internet traffic continues over your normal connection.</string>
     <string name="scope_disconnected">Sites may remain accessible over Wi-Fi or another route even while Zeroute is stopped.</string>
+    <string name="import_peer_hints">Import or replace peer hints</string>
+    <string name="remove_peer_hints">Remove peer hints</string>
+    <string name="peer_hints_loading">Loading peer hints</string>
+    <string name="peer_hints_unavailable">Peer hints are unavailable.</string>
+    <string name="peer_hints_none">No peer hints imported</string>
+    <plurals name="peer_hints_count">
+        <item quantity="one">Public hints for %d peer</item>
+        <item quantity="other">Public hints for %d peers</item>
+    </plurals>
+    <string name="peer_hints_picker_unavailable">Android could not open the file picker.</string>
+    <string name="peer_hints_disconnect">Disconnect before changing peer hints.</string>
+    <string name="peer_hints_file_unavailable">Choose a valid peer hints JSON file no larger than 64 KiB.</string>
+    <string name="peer_hints_saved">Peer hints saved for the next connection.</string>
+    <string name="peer_hints_removed">Peer hints removed.</string>
 </resources>

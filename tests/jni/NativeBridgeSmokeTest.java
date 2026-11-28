@@ -1,5 +1,7 @@
 package org.rcouto.zeroute;
 
+import java.nio.charset.StandardCharsets;
+
 public final class NativeBridgeSmokeTest {
   private static void check(boolean condition, String message) {
     if (!condition) throw new AssertionError(message);
@@ -8,6 +10,16 @@ public final class NativeBridgeSmokeTest {
   public static void main(String[] arguments) {
     String directory = arguments[0];
     check(NativeBridge.apiVersion() == NativeBridge.API_VERSION, "JNI version mismatch");
+    check(NativeBridge.peerHintsCount(directory) == -1, "Unexpected existing hints");
+    byte[] lanHints = "1\n0123456789\nlan\t192.168.2.3\t9993\n".getBytes(StandardCharsets.US_ASCII);
+    check(NativeBridge.importPeerHints(directory, lanHints).isEmpty(), "Valid LAN hint rejected");
+    check(NativeBridge.peerHintsCount(directory) == 0, "LAN hint became eligible");
+    check(
+        !NativeBridge.importPeerHints(directory, new byte[] {'{'}).isEmpty(),
+        "Malformed hints accepted");
+    check(NativeBridge.peerHintsCount(directory) == 0, "Malformed import replaced saved hints");
+    check(NativeBridge.removePeerHints(directory).isEmpty(), "Could not remove hints");
+    check(NativeBridge.peerHintsCount(directory) == -1, "Hints survived removal");
     check(NativeBridge.readiness() == 0, "Fresh process must be disconnected");
     check(
         (NativeBridge.capabilities() & ~NativeBridge.CAPABILITY_ENGINE) == 0, "Unknown capability");

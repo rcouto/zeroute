@@ -1,9 +1,9 @@
 //! JNI boundary: settings and lifecycle policy stay in Rust.
 
-use crate::{engine, settings};
+use crate::{engine, peer_hints, settings};
 use jni::EnvUnowned;
 use jni::errors::{Error, ThrowRuntimeExAndDefault};
-use jni::objects::{JClass, JString};
+use jni::objects::{JByteArray, JClass, JString};
 use jni::sys::{jint, jlong};
 use std::fmt;
 use std::path::Path;
@@ -32,7 +32,7 @@ pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_apiVersion<'caller>(
     _class: JClass<'caller>,
 ) -> jint {
     unowned
-        .with_env(|_| Ok::<_, Error>(5))
+        .with_env(|_| Ok::<_, Error>(6))
         .resolve::<ThrowRuntimeExAndDefault>()
 }
 
@@ -107,6 +107,69 @@ pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_saveNetworkId<'calle
                 engine::clear_inactive_error();
             }
             JString::from_str(env, message).map_err(BridgeError::from)
+        })
+        .resolve::<ThrowRuntimeExAndDefault>()
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_peerHintsCount<'caller>(
+    mut unowned: EnvUnowned<'caller>,
+    _class: JClass<'caller>,
+    directory: JString<'caller>,
+) -> jint {
+    unowned
+        .with_env(|_| {
+            let root = directory.to_string();
+            let hints = peer_hints::load(Path::new(&root)).map_err(BridgeError)?;
+            Ok::<_, BridgeError>(hints.map_or(-1, |peers| peers.len() as jint))
+        })
+        .resolve::<ThrowRuntimeExAndDefault>()
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_importPeerHints<'caller>(
+    mut unowned: EnvUnowned<'caller>,
+    _class: JClass<'caller>,
+    directory: JString<'caller>,
+    records: JByteArray<'caller>,
+) -> JString<'caller> {
+    unowned
+        .with_env(|env| {
+            let _guard = SETTINGS_LOCK
+                .lock()
+                .map_err(|_| BridgeError("Settings unavailable."))?;
+            let result = if !crate::session::can_edit_settings() {
+                Err("Disconnect before changing peer hints.")
+            } else if records.len(env)? > peer_hints::MAX_BYTES {
+                Err("Choose a peer hints file no larger than 64 KiB.")
+            } else {
+                let root = directory.to_string();
+                let bytes = env.convert_byte_array(&records)?;
+                peer_hints::store(Path::new(&root), &bytes)
+            };
+            JString::from_str(env, result.err().unwrap_or_default()).map_err(BridgeError::from)
+        })
+        .resolve::<ThrowRuntimeExAndDefault>()
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_org_rcouto_zeroute_NativeBridge_removePeerHints<'caller>(
+    mut unowned: EnvUnowned<'caller>,
+    _class: JClass<'caller>,
+    directory: JString<'caller>,
+) -> JString<'caller> {
+    unowned
+        .with_env(|env| {
+            let _guard = SETTINGS_LOCK
+                .lock()
+                .map_err(|_| BridgeError("Settings unavailable."))?;
+            let result = if crate::session::can_edit_settings() {
+                let root = directory.to_string();
+                peer_hints::remove(Path::new(&root))
+            } else {
+                Err("Disconnect before changing peer hints.")
+            };
+            JString::from_str(env, result.err().unwrap_or_default()).map_err(BridgeError::from)
         })
         .resolve::<ThrowRuntimeExAndDefault>()
 }
