@@ -4,6 +4,7 @@
 
 mod android_bridge;
 pub mod engine;
+mod peer_hints;
 pub mod readiness;
 pub mod settings;
 

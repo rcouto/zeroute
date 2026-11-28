@@ -23,11 +23,17 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /** Adaptive framework presentation; Rust owns connection and lifecycle semantics. */
 public final class MainActivity extends Activity {
+  private static final int OPEN_PEER_HINTS = 120;
+  private static final int NO_PEER_HINTS = -1;
+  private static final int PEER_HINTS_UNAVAILABLE = -2;
   private final ExecutorService worker = Executors.newSingleThreadExecutor();
   private final ConnectionController.Listener listener = this::render;
   private AlertDialog noticesDialog;
@@ -35,6 +41,8 @@ public final class MainActivity extends Activity {
   private boolean configured;
   private boolean saving;
   private boolean observing;
+  private boolean updatingHints;
+  private int peerHintsCount = PEER_HINTS_UNAVAILABLE;
   private EditText networkId;
   private ConnectionStatus status;
 
@@ -69,6 +77,8 @@ public final class MainActivity extends Activity {
     if (saved != null && saved.getBoolean("detailsExpanded")) showDetails(true);
     findViewById(R.id.connection_action).setEnabled(false);
     findViewById(R.id.save_network).setOnClickListener(v -> saveNetwork());
+    findViewById(R.id.import_peer_hints).setOnClickListener(v -> selectPeerHints());
+    findViewById(R.id.remove_peer_hints).setOnClickListener(v -> updatePeerHints(null));
     findViewById(R.id.connection_action)
         .setOnClickListener(v -> {
           if (status == null) return;
@@ -121,10 +131,12 @@ public final class MainActivity extends Activity {
         }
         final String value = stored;
         final boolean ok = success;
+        final int hints = readPeerHintsCount();
         runOnUiThread(() -> {
           if (isDestroyed()) return;
           loaded = true;
           configured = !value.isEmpty();
+          peerHintsCount = hints;
           if (saved == null) networkId.setText(value);
           if (!configured) showDetails(true);
           render(ConnectionStatus.read());
@@ -178,6 +190,93 @@ public final class MainActivity extends Activity {
     });
   }
 
+  @SuppressWarnings("deprecation")
+  private void selectPeerHints() {
+    Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+    picker.addCategory(Intent.CATEGORY_OPENABLE);
+    picker.setType("*/*");
+    try {
+      startActivityForResult(picker, OPEN_PEER_HINTS);
+    } catch (ActivityNotFoundException error) {
+      setText(R.id.message, getString(R.string.peer_hints_picker_unavailable));
+    }
+  }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  protected void onActivityResult(int request, int result, Intent data) {
+    super.onActivityResult(request, result, data);
+    if (request == OPEN_PEER_HINTS
+        && result == RESULT_OK
+        && data != null
+        && data.getData() != null) {
+      updatePeerHints(data.getData());
+    }
+  }
+
+  private int readPeerHintsCount() {
+    try {
+      return NativeBridge.peerHintsCount(getNoBackupFilesDir().getAbsolutePath());
+    } catch (RuntimeException error) {
+      return PEER_HINTS_UNAVAILABLE;
+    }
+  }
+
+  private byte[] readPeerHints(Uri uri) throws IOException {
+    try (InputStream input = getContentResolver().openInputStream(uri)) {
+      if (input == null) throw new IOException();
+      ByteArrayOutputStream output = new ByteArrayOutputStream();
+      byte[] buffer = new byte[4096];
+      int read;
+      while ((read = input.read(buffer)) != -1) {
+        if (output.size() + read > PeerHintsFile.MAX_BYTES) {
+          throw new IOException();
+        }
+        output.write(buffer, 0, read);
+      }
+      return output.toByteArray();
+    }
+  }
+
+  private void updatePeerHints(Uri source) {
+    if (updatingHints || status == null) return;
+    if (status.active()) {
+      setText(R.id.message, getString(R.string.peer_hints_disconnect));
+      return;
+    }
+    updatingHints = true;
+    render(status);
+    worker.execute(() -> {
+      String directory = getNoBackupFilesDir().getAbsolutePath();
+      String message;
+      try {
+        message =
+            source == null
+                ? NativeBridge.removePeerHints(directory)
+                : NativeBridge.importPeerHints(
+                    directory, PeerHintsFile.parse(readPeerHints(source)));
+      } catch (IOException error) {
+        message = getString(R.string.peer_hints_file_unavailable);
+      } catch (RuntimeException error) {
+        message = getString(R.string.peer_hints_unavailable);
+      }
+      final String result = message;
+      final int count = readPeerHintsCount();
+      runOnUiThread(() -> {
+        if (isDestroyed()) return;
+        updatingHints = false;
+        peerHintsCount = count;
+        render(ConnectionStatus.read());
+        setText(
+            R.id.message,
+            result.isEmpty()
+                ? getString(
+                    source == null ? R.string.peer_hints_removed : R.string.peer_hints_saved)
+                : result);
+      });
+    });
+  }
+
   private void render(ConnectionStatus current) {
     if (isDestroyed()) return;
     status = current;
@@ -198,9 +297,22 @@ public final class MainActivity extends Activity {
                     ? R.string.setup_action
                     : current.phase == 5 ? R.string.retry : R.string.start_engine;
     setText(R.id.connection_action, getString(actionTitle));
-    action.setEnabled(loaded && !saving && current.phase != 4);
+    action.setEnabled(
+        loaded && !saving && (!updatingHints || current.active()) && current.phase != 4);
     findViewById(R.id.save_network).setEnabled(loaded && !saving && !current.active());
     networkId.setEnabled(loaded && !saving && !current.active());
+    boolean canEditHints = loaded && !updatingHints && !current.active();
+    findViewById(R.id.import_peer_hints).setEnabled(canEditHints);
+    findViewById(R.id.remove_peer_hints)
+        .setEnabled(canEditHints && peerHintsCount != NO_PEER_HINTS);
+    setText(
+        R.id.peer_hints_status,
+        peerHintsCount == PEER_HINTS_UNAVAILABLE
+            ? getString(loaded ? R.string.peer_hints_unavailable : R.string.peer_hints_loading)
+            : peerHintsCount == NO_PEER_HINTS
+                ? getString(R.string.peer_hints_none)
+                : getResources()
+                    .getQuantityString(R.plurals.peer_hints_count, peerHintsCount, peerHintsCount));
     setText(
         R.id.tunnel_status,
         getString(

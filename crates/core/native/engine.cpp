@@ -52,6 +52,38 @@ static int wire_send(ZT_Node *, void *user, void *, int64_t,
                                   static_cast<const uint8_t *>(data), length);
 }
 
+static int lookup_path(ZT_Node *, void *user, void *, uint64_t peer,
+                       int requested_family, sockaddr_storage *result) {
+    auto *engine = static_cast<Engine *>(user);
+    int family;
+    switch (requested_family) {
+        case -1: family = -1; break;
+        case AF_INET: family = 4; break;
+        case AF_INET6: family = 6; break;
+        default: return 0;
+    }
+    uint8_t address[16]{};
+    unsigned int port = 0;
+    const int found = engine->callbacks.lookup_path(engine->user, peer, family, address, &port);
+    *result = {};
+    if (found == 4) {
+        sockaddr_in endpoint{};
+        endpoint.sin_family = AF_INET;
+        endpoint.sin_port = htons(static_cast<uint16_t>(port));
+        std::memcpy(&endpoint.sin_addr, address, 4);
+        std::memcpy(result, &endpoint, sizeof(endpoint));
+    } else if (found == 6) {
+        sockaddr_in6 endpoint{};
+        endpoint.sin6_family = AF_INET6;
+        endpoint.sin6_port = htons(static_cast<uint16_t>(port));
+        std::memcpy(&endpoint.sin6_addr, address, 16);
+        std::memcpy(result, &endpoint, sizeof(endpoint));
+    } else {
+        return 0;
+    }
+    return 1;
+}
+
 static void virtual_frame(ZT_Node *, void *user, void *, uint64_t network, void **,
                           uint64_t source, uint64_t destination, unsigned int type, unsigned int vlan,
                           const void *data, unsigned int length) {
@@ -134,6 +166,7 @@ extern "C" void *zr_node_new(const zr_callbacks *callbacks, void *user, int64_t 
     native.virtualNetworkFrameFunction = virtual_frame;
     native.virtualNetworkConfigFunction = network_configuration;
     native.eventCallback = event;
+    native.pathLookupFunction = lookup_path;
     ZT_Node_Config config{};
     if (ZT_Node_new(&engine->node, &config, engine, nullptr, &native, now) != ZT_RESULT_OK) {
         delete engine;

@@ -1,7 +1,7 @@
 package org.rcouto.zeroute;
 
 final class NativeBridge {
-  static final int API_VERSION = 5;
+  static final int API_VERSION = 6;
   static final int CAPABILITY_ENGINE = 1;
 
   static {
@@ -55,4 +55,11 @@ final class NativeBridge {
 
   // Empty means saved; validation/storage failures return a user-facing message.
   static native String saveNetworkId(String directory, String networkId);
+
+  // Returns the number of peers with usable public hints, or -1 if absent.
+  static native int peerHintsCount(String directory);
+
+  static native String importPeerHints(String directory, byte[] records);
+
+  static native String removePeerHints(String directory);
 }

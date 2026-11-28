@@ -12,6 +12,7 @@ typedef struct {
     void (*event)(void *, int);
     void (*configuration)(void *, uint64_t, int, uint64_t, unsigned int, const char *);
     void (*frame)(void *, uint64_t, uint64_t, uint64_t, unsigned int, const uint8_t *, unsigned int);
+    int (*lookup_path)(void *, uint64_t, int, uint8_t *, unsigned int *);
 } zr_callbacks;
 
 uint64_t zr_core_version(void);

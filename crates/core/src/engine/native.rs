@@ -4,6 +4,7 @@
 use super::{STATE, State};
 use crate::network::Configuration;
 use crate::packet::Bridge;
+use crate::peer_hints;
 use crate::readiness::{Attempt, Observation};
 use crate::settings;
 use std::ffi::c_void;
@@ -30,6 +31,7 @@ struct Callbacks {
     event: extern "C" fn(*mut c_void, i32),
     configuration: extern "C" fn(*mut c_void, u64, i32, u64, u32, *const c_char),
     frame: extern "C" fn(*mut c_void, u64, u64, u64, u32, *const u8, u32),
+    lookup_path: extern "C" fn(*mut c_void, u64, i32, *mut u8, *mut u32) -> i32,
 }
 
 unsafe extern "C" {
@@ -92,6 +94,7 @@ struct Context {
     attempt: Attempt,
     ipv4: UdpSocket,
     ipv6: Option<UdpSocket>,
+    hints: Mutex<peer_hints::PeerHints>,
     stop: Arc<AtomicBool>,
     failed: AtomicBool,
     refresh: Arc<AtomicU64>,
@@ -199,6 +202,7 @@ pub(super) fn start(root: &Path, protect: &mut dyn FnMut(i32) -> bool) -> Result
         attempt,
         ipv4,
         ipv6,
+        hints: Mutex::new(peer_hints::load(root).ok().flatten().unwrap_or_default()),
         stop: stop.clone(),
         failed: AtomicBool::new(false),
         refresh: refresh.clone(),
@@ -280,6 +284,7 @@ fn run(context: &Context, wake: &OwnedFd, commands: &Receiver<Command>) {
         event,
         configuration,
         frame: virtual_frame,
+        lookup_path,
     };
     // SAFETY: context is boxed and outlives this node; callbacks are kept on this
     // stack until node deletion. All callbacks contain panics at the ABI boundary.
@@ -594,6 +599,43 @@ extern "C" fn state_get(
             std::ptr::copy_nonoverlapping(bytes.as_ptr(), data, bytes.len());
         }
         bytes.len() as i32
+    })
+}
+
+extern "C" fn lookup_path(
+    user: *mut c_void,
+    peer: u64,
+    requested_family: i32,
+    address: *mut u8,
+    port: *mut u32,
+) -> i32 {
+    callback(user, 0, |context| {
+        if address.is_null() || port.is_null() || context.stop.load(Ordering::Acquire) {
+            return 0;
+        }
+        let Ok(mut hints) = context.hints.lock() else {
+            return 0;
+        };
+        let Some(candidates) = hints.get_mut(&peer) else {
+            return 0;
+        };
+        let Some(index) = candidates.iter().position(|candidate| match candidate {
+            SocketAddr::V4(_) => matches!(requested_family, -1 | 4),
+            SocketAddr::V6(_) => context.ipv6.is_some() && matches!(requested_family, -1 | 6),
+        }) else {
+            return 0;
+        };
+        let (family, bytes, destination_port, _) = endpoint(candidates[index]);
+        // The core asks for one candidate per retry. Start in input order and
+        // give later candidates a turn if a preferred endpoint is unreachable.
+        candidates.rotate_left(index + 1);
+        // SAFETY: our adapter supplies a writable 16-byte array and port for
+        // the duration of this call.
+        unsafe {
+            *address.cast::<[u8; 16]>() = bytes;
+            *port = destination_port;
+        }
+        family
     })
 }
 

@@ -70,8 +70,14 @@ pub fn load(root: &Path) -> Result<Option<NetworkId>, SettingsError> {
 
 pub fn save(root: &Path, input: &str) -> Result<NetworkId, SettingsError> {
     let id: NetworkId = input.parse()?;
+    write_private(root, "network-id", format!("{id}\n").as_bytes())
+        .map_err(|_| SettingsError::SaveFailed)?;
+    Ok(id)
+}
+
+pub(crate) fn write_private(root: &Path, name: &str, bytes: &[u8]) -> std::io::Result<()> {
     // App JNI calls serialize writes; readers only see the renamed final file.
-    let pending = root.join("network-id.pending");
+    let pending = root.join(format!("{name}.pending"));
     let result = (|| -> std::io::Result<()> {
         fs::create_dir_all(root)?;
         let mut file = OpenOptions::new()
@@ -80,16 +86,15 @@ pub fn save(root: &Path, input: &str) -> Result<NetworkId, SettingsError> {
             .truncate(true)
             .mode(0o600)
             .open(&pending)?;
-        writeln!(file, "{id}")?;
+        file.write_all(bytes)?;
         file.sync_all()?;
-        fs::rename(&pending, root.join("network-id"))?;
+        fs::rename(&pending, root.join(name))?;
         File::open(root)?.sync_all()
     })();
     if result.is_err() {
         let _ = fs::remove_file(&pending);
-        return Err(SettingsError::SaveFailed);
     }
-    Ok(id)
+    result
 }
 
 #[cfg(test)]

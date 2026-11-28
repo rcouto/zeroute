@@ -41,6 +41,12 @@
                 android:maxLines="1" android:singleLine="true" android:selectAllOnFocus="true" />
             <Button android:id="@+id/save_network" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:minHeight="48dp" android:text="@string/save_network" />
+            <TextView android:id="@+id/peer_hints_status" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" android:accessibilityLiveRegion="polite" />
+            <Button android:id="@+id/import_peer_hints" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/import_peer_hints" />
+            <Button android:id="@+id/remove_peer_hints" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/remove_peer_hints" />
             <TextView android:id="@+id/node_address" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="12dp" android:textIsSelectable="true" />
             <Button android:id="@+id/copy_node" android:layout_width="match_parent" android:layout_height="wrap_content"

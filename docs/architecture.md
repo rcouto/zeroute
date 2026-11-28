@@ -61,6 +61,10 @@ files and atomic replacement; unreadable identity fails closed rather than
 silently generating a replacement. Cloud backup and device transfer are disabled.
 No identity export or recovery workflow exists yet.
 
+[Peer endpoint hints](peer-endpoint-hints.md) are optional app settings.
+The Rust worker loads a snapshot on connection and serves eligible public
+addresses through the core's path lookup callback.
+
 Each connection attempt has a generation. Stale callbacks are ignored; loss of
 an engine/configuration prerequisite clears downstream readiness. Local engine
 execution and root connectivity are separate facts: a root outage alone does not
